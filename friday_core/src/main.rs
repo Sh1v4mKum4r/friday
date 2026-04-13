@@ -4,6 +4,7 @@ mod config;
 mod de;
 mod launcher;
 mod panel;
+mod socket;
 mod task_manager;
 
 use clap::Parser;
@@ -56,10 +57,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if args.daemon {
         println!("[Daemon mode] Friday running as daemon. DE: {}", de::de_display_name(&de));
-        // In daemon mode, just keep alive (future: IPC socket, panel updates, etc.)
-        loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
-        }
+
+        // Start socket listener in background
+        let daemon_host = host.to_string();
+        let daemon_port = port;
+        tokio::spawn(async move {
+            if let Err(e) = socket::start_socket_listener(daemon_host, daemon_port).await {
+                eprintln!("Socket listener error: {}", e);
+            }
+        });
+
+        println!("Friday daemon running. Socket: {}", socket::socket_path().display());
+        println!(
+            "Send prompts with: echo 'your prompt' | socat - UNIX-CONNECT:{}",
+            socket::socket_path().display()
+        );
+
+        tokio::signal::ctrl_c().await?;
+        socket::cleanup_socket();
+        println!("Friday daemon stopped.");
+        return Ok(());
     }
 
     println!(

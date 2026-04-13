@@ -1,0 +1,26 @@
+#!/bin/bash
+# friday-send — Send a prompt to the Friday daemon via Unix socket
+# Usage: friday-send "your prompt"
+#        echo "your prompt" | friday-send
+
+SOCKET="${XDG_RUNTIME_DIR:-/tmp}/friday.sock"
+
+if [ ! -S "$SOCKET" ]; then
+    echo "Error: Friday daemon not running (no socket at $SOCKET)"
+    exit 1
+fi
+
+# Get prompt from args or stdin
+if [ $# -gt 0 ]; then
+    PROMPT="$*"
+else
+    read -r PROMPT
+fi
+
+if [ -z "$PROMPT" ]; then
+    echo "Usage: friday-send <prompt>"
+    exit 1
+fi
+
+# Send to socket, read response
+echo "$PROMPT" | socat - UNIX-CONNECT:"$SOCKET"
