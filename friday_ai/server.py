@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 class ChatRequest(BaseModel):
     message: str
     force_provider: str | None = None
+    race: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -145,6 +146,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     router = ProviderRouter(
         providers=providers,
         auto_escalate=config.behavior.auto_escalate,
+        provider_mode=config.behavior.provider_mode,
     )
 
     tool_loader = ToolLoader(
@@ -188,6 +190,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         result = await app.state.agent.chat(
             message=request.message,
             force_provider=request.force_provider,
+            race=request.race,
         )
         return ChatResponse(response=result.content, provider=result.provider_name)
 

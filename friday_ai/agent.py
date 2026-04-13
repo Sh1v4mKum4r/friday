@@ -60,6 +60,7 @@ class Agent:
         self,
         message: str,
         force_provider: str | None = None,
+        race: bool = False,
     ) -> ProviderResponse:
         """Send *message* through the agent and return the final response.
 
@@ -79,6 +80,9 @@ class Agent:
         force_provider:
             Optional provider name to force; passed straight through to
             :meth:`~friday_ai.router.ProviderRouter.route`.
+        race:
+            When True, override the router's provider_mode to "race" for this
+            request so all available providers are fired simultaneously.
         """
         # ------------------------------------------------------------------ #
         # Build system prompt                                                  #
@@ -105,37 +109,46 @@ class Agent:
         current_prompt = message
         last_response: ProviderResponse | None = None
 
-        for _round in range(MAX_TOOL_ROUNDS):
-            response = await self.router.route(
-                prompt=current_prompt,
-                tools=tool_schemas or None,
-                history=self.history[:-1],  # exclude the last user message (it's the prompt)
-                system_prompt=system_prompt,
-                force_provider=force_provider,
-            )
-            last_response = response
+        # When race=True, temporarily override provider_mode for this request
+        original_mode = self.router.provider_mode
+        if race and force_provider is None:
+            self.router.provider_mode = "race"
 
-            # No tool calls — this is the final answer
-            if not response.tool_calls:
-                self.history.append({"role": "assistant", "content": response.content})
-                self.memory.append_daily_log(f"[assistant] {response.content}")
+        try:
+            for _round in range(MAX_TOOL_ROUNDS):
+                response = await self.router.route(
+                    prompt=current_prompt,
+                    tools=tool_schemas or None,
+                    history=self.history[:-1],  # exclude the last user message (it's the prompt)
+                    system_prompt=system_prompt,
+                    force_provider=force_provider,
+                )
+                last_response = response
 
-                # Check bootstrap completion
-                if identity.bootstrap and "bootstrap is complete" in response.content.lower():
-                    delete_bootstrap(self.config_dir)
+                # No tool calls — this is the final answer
+                if not response.tool_calls:
+                    self.history.append({"role": "assistant", "content": response.content})
+                    self.memory.append_daily_log(f"[assistant] {response.content}")
 
-                return response
+                    # Check bootstrap completion
+                    if identity.bootstrap and "bootstrap is complete" in response.content.lower():
+                        delete_bootstrap(self.config_dir)
 
-            # There are tool calls — execute each and build a follow-up prompt
-            result_parts: list[str] = []
-            for tool_call in response.tool_calls:
-                try:
-                    result = self.tool_loader.execute(tool_call.name, tool_call.arguments)
-                except Exception as exc:  # noqa: BLE001
-                    result = f"Error executing {tool_call.name}: {exc}"
-                result_parts.append(f"Tool '{tool_call.name}' returned: {result}")
+                    return response
 
-            current_prompt = "\n".join(result_parts)
+                # There are tool calls — execute each and build a follow-up prompt
+                result_parts: list[str] = []
+                for tool_call in response.tool_calls:
+                    try:
+                        result = self.tool_loader.execute(tool_call.name, tool_call.arguments)
+                    except Exception as exc:  # noqa: BLE001
+                        result = f"Error executing {tool_call.name}: {exc}"
+                    result_parts.append(f"Tool '{tool_call.name}' returned: {result}")
+
+                current_prompt = "\n".join(result_parts)
+
+        finally:
+            self.router.provider_mode = original_mode
 
         # ------------------------------------------------------------------ #
         # Max rounds exceeded — return the last partial response               #

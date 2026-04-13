@@ -8,6 +8,7 @@ local "ollama" provider when the prompt is detected as complex.
 """
 from __future__ import annotations
 
+import asyncio
 import re
 
 from friday_ai.providers.base import BaseProvider, ProviderResponse
@@ -93,9 +94,11 @@ class ProviderRouter:
         self,
         providers: list[BaseProvider],
         auto_escalate: bool = True,
+        provider_mode: str = "fallback",
     ) -> None:
         self.providers = providers
         self.auto_escalate = auto_escalate
+        self.provider_mode = provider_mode
 
     async def route(
         self,
@@ -124,6 +127,14 @@ class ProviderRouter:
         # ------------------------------------------------------------------ #
         # force_provider path                                                  #
         # ------------------------------------------------------------------ #
+        if force_provider is None and self.provider_mode == "race":
+            return await self.race(
+                prompt=prompt,
+                tools=tools,
+                history=history,
+                system_prompt=system_prompt,
+            )
+
         if force_provider is not None:
             target = self._find_by_name(force_provider)
             if target is None:
@@ -166,6 +177,77 @@ class ProviderRouter:
         # ------------------------------------------------------------------ #
         return ProviderResponse(
             content="Error: no providers are currently available.",
+            provider_name="",
+        )
+
+    async def race(
+        self,
+        prompt: str,
+        tools: list[dict] | None,
+        history: list[dict],
+        system_prompt: str = "",
+    ) -> ProviderResponse:
+        """Fire all available providers simultaneously and return the fastest response.
+
+        Parameters
+        ----------
+        prompt:
+            The current user instruction.
+        tools:
+            Optional list of OpenAI-compatible tool schemas.
+        history:
+            Conversation history (not including the current prompt).
+        system_prompt:
+            Optional system instruction.
+        """
+        available = []
+        for p in self.providers:
+            if await p.is_available():
+                available.append(p)
+
+        if not available:
+            return ProviderResponse(
+                content="Error: no providers available.",
+                provider_name="",
+            )
+
+        async def _call(provider: BaseProvider) -> ProviderResponse:
+            response = await provider.send_message(
+                prompt=prompt,
+                tools=tools,
+                history=history,
+                system_prompt=system_prompt,
+            )
+            if not response.content and not response.tool_calls:
+                raise ValueError("Empty response")
+            return response
+
+        all_tasks: set[asyncio.Task] = {
+            asyncio.create_task(_call(p)) for p in available
+        }
+
+        remaining = set(all_tasks)
+
+        while remaining:
+            done, remaining = await asyncio.wait(
+                remaining, return_when=asyncio.FIRST_COMPLETED
+            )
+
+            # Check completed tasks for a successful result
+            for task in done:
+                try:
+                    winner = task.result()
+                    # Cancel all still-pending tasks
+                    for t in remaining:
+                        t.cancel()
+                    return winner
+                except Exception:
+                    continue
+            # All tasks in this batch errored — keep waiting for the rest
+
+        # Every task errored
+        return ProviderResponse(
+            content="Error: all providers failed during race.",
             provider_name="",
         )
 

@@ -8,9 +8,14 @@ Covers:
 - should_escalate heuristic (length + complex keywords)
 - needs_web_search heuristic
 - All-providers-unavailable error path
+- Race mode: returns fastest provider's response
+- Race mode: handles individual provider errors gracefully
+- Race mode: cancels slower providers
+- Race mode: bypassed by force_provider
 """
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -441,3 +446,135 @@ class TestRouterSystemPrompt:
 
         _, kwargs = ollama.send_message.call_args
         assert kwargs.get("system_prompt", "") == ""
+
+
+# ---------------------------------------------------------------------------
+# 8. Router: race mode
+# ---------------------------------------------------------------------------
+
+
+def make_slow_provider(name: str, delay: float, available: bool = True) -> MagicMock:
+    """Create a mock provider whose send_message takes *delay* seconds."""
+    provider = MagicMock()
+    provider.name = name
+    provider.is_available = AsyncMock(return_value=available)
+
+    async def _slow_send(**kwargs):
+        await asyncio.sleep(delay)
+        return ProviderResponse(content=f"response from {name}", provider_name=name)
+
+    provider.send_message = AsyncMock(side_effect=_slow_send)
+    provider.supports_tools = MagicMock(return_value=True)
+    return provider
+
+
+class TestRaceMode:
+    @pytest.mark.asyncio
+    async def test_race_returns_fastest_provider_response(self):
+        """The provider that responds first wins the race."""
+        fast = make_slow_provider("fast", delay=0.01)
+        slow = make_slow_provider("slow", delay=0.5)
+        router = ProviderRouter(
+            providers=[fast, slow], auto_escalate=False, provider_mode="race"
+        )
+
+        result = await router.route(prompt="hi", tools=None, history=[])
+
+        assert result.provider_name == "fast"
+        assert result.content == "response from fast"
+
+    @pytest.mark.asyncio
+    async def test_race_cancels_slower_providers(self):
+        """After the fastest provider responds, pending tasks are cancelled."""
+        fast = make_slow_provider("fast", delay=0.01)
+        slow = make_slow_provider("slow", delay=10.0)
+        router = ProviderRouter(
+            providers=[fast, slow], auto_escalate=False, provider_mode="race"
+        )
+
+        # Should complete well before the 10-second slow provider
+        result = await asyncio.wait_for(
+            router.route(prompt="hi", tools=None, history=[]), timeout=2.0
+        )
+
+        assert result.provider_name == "fast"
+
+    @pytest.mark.asyncio
+    async def test_race_handles_provider_error_gracefully(self):
+        """If the fastest provider raises an exception, the next winner is used."""
+        error_provider = make_provider("error_provider", available=True)
+        error_provider.send_message = AsyncMock(
+            side_effect=RuntimeError("provider exploded")
+        )
+        good = make_slow_provider("good", delay=0.05)
+        router = ProviderRouter(
+            providers=[error_provider, good], auto_escalate=False, provider_mode="race"
+        )
+
+        result = await router.route(prompt="hi", tools=None, history=[])
+
+        # The good provider should win since the error provider crashed
+        assert result.provider_name == "good"
+        assert result.content == "response from good"
+
+    @pytest.mark.asyncio
+    async def test_race_returns_error_when_all_providers_fail(self):
+        """When every provider errors, race() returns an error ProviderResponse."""
+        p1 = make_provider("p1", available=True)
+        p1.send_message = AsyncMock(side_effect=RuntimeError("fail"))
+        p2 = make_provider("p2", available=True)
+        p2.send_message = AsyncMock(side_effect=RuntimeError("fail"))
+        router = ProviderRouter(
+            providers=[p1, p2], auto_escalate=False, provider_mode="race"
+        )
+
+        result = await router.route(prompt="hi", tools=None, history=[])
+
+        assert result.provider_name == ""
+        assert "error" in result.content.lower()
+
+    @pytest.mark.asyncio
+    async def test_race_no_available_providers_returns_error(self):
+        """race() returns an error when no providers are available."""
+        p1 = make_provider("p1", available=False)
+        router = ProviderRouter(
+            providers=[p1], auto_escalate=False, provider_mode="race"
+        )
+
+        result = await router.route(prompt="hi", tools=None, history=[])
+
+        assert result.provider_name == ""
+        assert "error" in result.content.lower()
+
+    @pytest.mark.asyncio
+    async def test_force_provider_bypasses_race_mode(self):
+        """force_provider always uses the specific provider regardless of race mode."""
+        fast = make_slow_provider("fast", delay=0.01)
+        target = make_slow_provider("target", delay=0.5)
+        router = ProviderRouter(
+            providers=[fast, target], auto_escalate=False, provider_mode="race"
+        )
+
+        result = await router.route(
+            prompt="hi", tools=None, history=[], force_provider="target"
+        )
+
+        # force_provider overrides race — must use "target"
+        assert result.provider_name == "target"
+        fast.send_message.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_race_mode_via_route_method(self):
+        """route() dispatches to race() when provider_mode == 'race'."""
+        p1 = make_provider("p1", available=True)
+        p2 = make_provider("p2", available=True)
+        router = ProviderRouter(
+            providers=[p1, p2], auto_escalate=False, provider_mode="race"
+        )
+
+        result = await router.route(prompt="hi", tools=None, history=[])
+
+        # Both providers should have been called (race fires all simultaneously)
+        p1.send_message.assert_awaited_once()
+        p2.send_message.assert_awaited_once()
+        assert result.content != ""
