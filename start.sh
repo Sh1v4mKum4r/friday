@@ -45,6 +45,10 @@ done
 
 # --- Parse args ---
 case "${1:-}" in
+    --install-keybind)
+        "$FRIDAY_DIR/bin/friday-install-keybind"
+        exit 0
+        ;;
     --daemon)
         echo "Friday running in daemon mode (PID: $BACKEND_PID). Press Ctrl+C to stop."
         trap "kill $BACKEND_PID 2>/dev/null" EXIT

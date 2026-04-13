@@ -1,0 +1,46 @@
+#!/bin/bash
+# friday-install-keybind — Register Super+F hotkey for Friday
+
+FRIDAY_DIR="$HOME/Projects/jarvis"
+HOTKEY_SCRIPT="$FRIDAY_DIR/bin/friday-hotkey"
+
+echo "Installing Friday hotkey (Super+F)..."
+
+# Detect DE
+XDG="${XDG_CURRENT_DESKTOP,,}"
+
+if [[ "$XDG" == *"hyprland"* ]] || pgrep -x Hyprland &>/dev/null; then
+    CONF="$HOME/.config/hypr/hyprland.conf"
+
+    # Check if already installed
+    if grep -q "friday-hotkey" "$CONF" 2>/dev/null; then
+        echo "Keybind already installed in $CONF"
+        exit 0
+    fi
+
+    # Append keybind
+    echo "" >> "$CONF"
+    echo "# Friday AI hotkey" >> "$CONF"
+    echo "bind = SUPER, F, exec, $HOTKEY_SCRIPT" >> "$CONF"
+    echo "Installed: Super+F -> Friday (Hyprland)"
+    echo "Reload config with: hyprctl reload"
+
+elif [[ "$XDG" == *"cosmic"* ]] || pgrep -x cosmic-comp &>/dev/null; then
+    # Cosmic uses a different keybind system — cosmic-settings or config files
+    COSMIC_KB_DIR="$HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1"
+    mkdir -p "$COSMIC_KB_DIR"
+
+    echo "Cosmic keybind setup:"
+    echo "  1. Open Cosmic Settings -> Keyboard -> Shortcuts"
+    echo "  2. Add custom shortcut:"
+    echo "     Name: Friday AI"
+    echo "     Command: $HOTKEY_SCRIPT"
+    echo "     Shortcut: Super+F"
+    echo ""
+    echo "Or run this command to try automatic install:"
+    echo "  cosmic-settings shortcuts add --name 'Friday AI' --command '$HOTKEY_SCRIPT' --binding 'Super+F'"
+
+else
+    echo "Unknown DE. Manual setup:"
+    echo "  Bind Super+F to: $HOTKEY_SCRIPT"
+fi

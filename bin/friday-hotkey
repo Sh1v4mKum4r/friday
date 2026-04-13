@@ -1,0 +1,25 @@
+#!/bin/bash
+# friday-hotkey — Hotkey handler for Friday
+# Triggered by Super+F keybind. Opens a prompt, sends to Friday daemon.
+
+SOCKET="${XDG_RUNTIME_DIR:-/tmp}/friday.sock"
+
+if [ ! -S "$SOCKET" ]; then
+    notify-send "Friday" "Daemon not running. Start with: friday --daemon"
+    exit 1
+fi
+
+# Detect launcher
+if command -v rofi &>/dev/null; then
+    PROMPT=$(rofi -dmenu -p "Friday" -theme-str 'listview { enabled: false; }' -theme-str 'window { width: 600px; }')
+elif command -v wofi &>/dev/null; then
+    PROMPT=$(wofi --dmenu --prompt "Friday" --width 600 --lines 0)
+else
+    notify-send "Friday" "No launcher found. Install rofi or wofi."
+    exit 1
+fi
+
+[ -z "$PROMPT" ] && exit 0
+
+# Send to Friday daemon (notification is sent by the daemon)
+echo "$PROMPT" | socat - UNIX-CONNECT:"$SOCKET" &
