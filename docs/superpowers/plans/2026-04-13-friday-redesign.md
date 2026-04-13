@@ -13,7 +13,7 @@
 ## File Structure
 
 ```
-~/Projects/jarvis/
+~/Projects/friday/
 ├── friday_core/
 │   ├── Cargo.toml
 │   └── src/
@@ -93,7 +93,7 @@
 - [ ] **Step 1: Clean up old project files**
 
 ```bash
-cd ~/Projects/jarvis
+cd ~/Projects/friday
 rm -f agent.py server.py tools.py main.py uvicorn.log
 rm -rf __pycache__
 ```
@@ -148,7 +148,7 @@ OPENAI_API_KEY=
 - [ ] **Step 5: Create venv and install dependencies**
 
 ```bash
-cd ~/Projects/jarvis
+cd ~/Projects/friday
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -156,7 +156,7 @@ pip install -e ".[dev]"
 
 - [ ] **Step 6: Verify pytest runs with no tests**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest -v`
 Expected: "no tests ran" with exit code 5 (no collection errors)
 
 - [ ] **Step 7: Commit**
@@ -297,7 +297,7 @@ enabled = false
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_config.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_config.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'friday_ai.config'`
 
 - [ ] **Step 3: Write the implementation**
@@ -442,7 +442,7 @@ enabled = false
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_config.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_config.py -v`
 Expected: 3 passed
 
 - [ ] **Step 6: Commit**
@@ -544,7 +544,7 @@ def test_delete_bootstrap():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_identity.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_identity.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'friday_ai.identity'`
 
 - [ ] **Step 3: Write the implementation**
@@ -682,7 +682,7 @@ Keep it brief — don't lecture. Get the info, save it, move on.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_identity.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_identity.py -v`
 Expected: 5 passed
 
 - [ ] **Step 6: Commit**
@@ -826,7 +826,7 @@ def test_get_context_for_prompt():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_memory.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_memory.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'friday_ai.memory'`
 
 - [ ] **Step 3: Write the implementation**
@@ -920,7 +920,7 @@ class MemoryStore:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_memory.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_memory.py -v`
 Expected: 7 passed
 
 - [ ] **Step 5: Commit**
@@ -1082,7 +1082,7 @@ def run(command: str) -> str:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_tool_loader.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_tool_loader.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'friday_ai.tool_loader'`
 
 - [ ] **Step 3: Write the implementation**
@@ -1214,7 +1214,7 @@ class ToolLoader:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_tool_loader.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_tool_loader.py -v`
 Expected: 5 passed
 
 - [ ] **Step 5: Commit**
@@ -1562,7 +1562,7 @@ async def test_ollama_send_message_with_tool_call():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_providers.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_providers.py -v`
 Expected: FAIL — `ModuleNotFoundError`
 
 - [ ] **Step 3: Write the base provider interface**
@@ -1686,7 +1686,7 @@ class OllamaProvider(BaseProvider):
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_providers.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_providers.py -v`
 Expected: 3 passed
 
 - [ ] **Step 6: Commit**
@@ -2181,7 +2181,7 @@ async def test_router_auto_escalate():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_router.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_router.py -v`
 Expected: FAIL
 
 - [ ] **Step 3: Write the implementation**
@@ -2277,7 +2277,7 @@ class ProviderRouter:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_router.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_router.py -v`
 Expected: 4 passed
 
 - [ ] **Step 5: Commit**
@@ -2388,7 +2388,7 @@ async def test_agent_tool_call_loop():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_agent.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_agent.py -v`
 Expected: FAIL
 
 - [ ] **Step 3: Write the implementation**
@@ -2502,7 +2502,7 @@ class Agent:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_agent.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_agent.py -v`
 Expected: 2 passed
 
 - [ ] **Step 5: Commit**
@@ -2601,7 +2601,7 @@ async def test_chat_endpoint(mock_app):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_server.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_server.py -v`
 Expected: FAIL
 
 - [ ] **Step 3: Write the implementation**
@@ -2763,7 +2763,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest tests/test_server.py -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest tests/test_server.py -v`
 Expected: 2 passed
 
 - [ ] **Step 5: Commit**
@@ -2946,7 +2946,7 @@ impl FridayClient {
 
 - [ ] **Step 4: Verify Rust compiles**
 
-Run: `cd ~/Projects/jarvis/friday_core && cargo check`
+Run: `cd ~/Projects/friday/friday_core && cargo check`
 Expected: compiles without errors
 
 - [ ] **Step 5: Commit**
@@ -3298,7 +3298,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 - [ ] **Step 4: Verify Rust compiles**
 
-Run: `cd ~/Projects/jarvis/friday_core && cargo check`
+Run: `cd ~/Projects/friday/friday_core && cargo check`
 Expected: compiles without errors
 
 - [ ] **Step 5: Commit**
@@ -3384,7 +3384,7 @@ Add `mod de;` to the top of `friday_core/src/main.rs` alongside the other module
 
 - [ ] **Step 3: Verify compile**
 
-Run: `cd ~/Projects/jarvis/friday_core && cargo check`
+Run: `cd ~/Projects/friday/friday_core && cargo check`
 Expected: compiles
 
 - [ ] **Step 4: Commit**
@@ -3491,7 +3491,7 @@ Add `mod panel;` and `mod launcher;` to `friday_core/src/main.rs`.
 
 - [ ] **Step 4: Verify compile**
 
-Run: `cd ~/Projects/jarvis/friday_core && cargo check`
+Run: `cd ~/Projects/friday/friday_core && cargo check`
 Expected: compiles (with unused warnings, fine for stubs)
 
 - [ ] **Step 5: Commit**
@@ -3514,7 +3514,7 @@ git commit -m "feat: add panel widget and hotkey launcher stubs for Waybar/Rofi"
 #!/bin/bash
 set -e
 
-FRIDAY_DIR="$HOME/Projects/jarvis"
+FRIDAY_DIR="$HOME/Projects/friday"
 CONFIG_DIR="$HOME/.config/friday"
 DATA_DIR="$HOME/.local/share/friday"
 
@@ -3583,7 +3583,7 @@ esac
 - [ ] **Step 2: Make executable**
 
 ```bash
-chmod +x ~/Projects/jarvis/start.sh
+chmod +x ~/Projects/friday/start.sh
 ```
 
 - [ ] **Step 3: Commit**
@@ -3610,7 +3610,7 @@ ollama pull qwen2.5:7b
 - [ ] **Step 2: Build everything**
 
 ```bash
-cd ~/Projects/jarvis
+cd ~/Projects/friday
 source .venv/bin/activate
 pip install -e ".[dev]"
 cd friday_core && cargo build --release && cd ..
@@ -3618,7 +3618,7 @@ cd friday_core && cargo build --release && cd ..
 
 - [ ] **Step 3: Run all Python tests**
 
-Run: `cd ~/Projects/jarvis && source .venv/bin/activate && pytest -v`
+Run: `cd ~/Projects/friday && source .venv/bin/activate && pytest -v`
 Expected: All tests pass
 
 - [ ] **Step 4: Run Friday**

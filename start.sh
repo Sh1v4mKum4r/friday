@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-FRIDAY_DIR="$HOME/Projects/jarvis"
+FRIDAY_DIR="$HOME/Projects/friday"
 CONFIG_DIR="$HOME/.config/friday"
 DATA_DIR="$HOME/.local/share/friday"
 

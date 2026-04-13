@@ -1,7 +1,7 @@
 #!/bin/bash
 # friday-install-keybind — Register Super+F hotkey for Friday
 
-FRIDAY_DIR="$HOME/Projects/jarvis"
+FRIDAY_DIR="$HOME/Projects/friday"
 HOTKEY_SCRIPT="$FRIDAY_DIR/bin/friday-hotkey"
 
 echo "Installing Friday hotkey (Super+F)..."

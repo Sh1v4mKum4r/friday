@@ -289,7 +289,7 @@ These are designed-for but NOT built in Phase 1. The architecture supports plugg
 ## Project Structure
 
 ```
-~/Projects/jarvis/
+~/Projects/friday/
 ├── friday_core/              # Rust core
 │   ├── Cargo.toml
 │   └── src/
