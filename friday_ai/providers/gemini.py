@@ -192,18 +192,12 @@ class GeminiCLIProvider(BaseProvider):
                 ["gemini", "-p", full_prompt],
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=60,
             )
         except subprocess.TimeoutExpired:
-            return ProviderResponse(
-                content="Gemini CLI timed out.",
-                provider_name=self.name,
-            )
+            raise RuntimeError("Gemini CLI timed out")
         except FileNotFoundError:
-            return ProviderResponse(
-                content="Gemini CLI not found.",
-                provider_name=self.name,
-            )
+            raise RuntimeError("Gemini CLI not found")
         output = result.stdout.strip()
 
         tool_calls: list[ToolCall] = []

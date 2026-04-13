@@ -181,18 +181,12 @@ class ClaudeCLIProvider(BaseProvider):
                 ["claude", "-p", full_prompt],
                 capture_output=True,
                 text=True,
-                timeout=120,
+                timeout=60,
             )
         except subprocess.TimeoutExpired:
-            return ProviderResponse(
-                content="Claude CLI timed out.",
-                provider_name=self.name,
-            )
+            raise RuntimeError("Claude CLI timed out")
         except FileNotFoundError:
-            return ProviderResponse(
-                content="Claude CLI not found.",
-                provider_name=self.name,
-            )
+            raise RuntimeError("Claude CLI not found")
         output = result.stdout.strip()
 
         tool_calls: list[ToolCall] = []
