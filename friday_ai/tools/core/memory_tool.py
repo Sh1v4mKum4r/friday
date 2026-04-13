@@ -1,34 +1,26 @@
-"""Long-term memory save tool."""
+"""Long-term memory save tool.
 
-from __future__ import annotations
+Writes directly to MEMORY.md instead of going through the MemoryStore class,
+avoiding the module-namespace issue with dynamic tool loading.
+"""
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from friday_ai.memory import MemoryStore
+from pathlib import Path
 
 name = "memory_save"
 description = "Save a piece of information to Friday's long-term memory (MEMORY.md)."
 
-_memory_store: "MemoryStore | None" = None
-
-
-def set_store(store: "MemoryStore") -> None:
-    """Inject the :class:`~friday_ai.memory.MemoryStore` instance at runtime."""
-    global _memory_store  # noqa: PLW0603
-    _memory_store = store
+_MEMORY_FILE = Path.home() / ".local" / "share" / "friday" / "memory" / "MEMORY.md"
 
 
 def run(entry: str) -> str:
-    """Append *entry* as a bullet point to long-term memory.
-
-    Returns a success message, or an error if the memory store has not been
-    initialised via :func:`set_store`.
-    """
-    if _memory_store is None:
-        return "Error: memory store is not initialised. Call set_store() before using this tool."
+    """Append *entry* as a bullet point to MEMORY.md."""
     try:
-        _memory_store.write_memory(entry)
+        _MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        existing = _MEMORY_FILE.read_text().rstrip() if _MEMORY_FILE.exists() else ""
+        if existing:
+            _MEMORY_FILE.write_text(f"{existing}\n- {entry}\n")
+        else:
+            _MEMORY_FILE.write_text(f"- {entry}\n")
         return f"Saved to memory: {entry}"
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return f"Error saving to memory: {exc}"

@@ -169,9 +169,6 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         mcp_manager=mcp_manager,
     )
 
-    # Wire memory tool
-    memory_tool.set_store(agent.memory)
-
     # ------------------------------------------------------------------ #
     # Store on app.state for endpoint access                               #
     # ------------------------------------------------------------------ #
