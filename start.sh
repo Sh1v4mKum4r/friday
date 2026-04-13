@@ -1,20 +1,67 @@
 #!/bin/bash
+set -e
 
-# Navigate to the jarvis project root
-cd ~/Projects/jarvis
+FRIDAY_DIR="$HOME/Projects/jarvis"
+CONFIG_DIR="$HOME/.config/friday"
+DATA_DIR="$HOME/.local/share/friday"
 
-echo "Starting Python Agent Microservice in the background..."
-# Run uvicorn in the background, logging to a file to keep the terminal clean
-.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
-UVICORN_PID=$!
+# --- First-run: copy default config if needed ---
+if [ ! -f "$CONFIG_DIR/config.toml" ]; then
+    echo "First run detected. Setting up Friday..."
+    mkdir -p "$CONFIG_DIR/tools/plugins"
+    mkdir -p "$DATA_DIR/memory" "$DATA_DIR/history"
+    cp "$FRIDAY_DIR/config/config.toml" "$CONFIG_DIR/"
+    cp "$FRIDAY_DIR/config/SOUL.md" "$CONFIG_DIR/"
+    cp "$FRIDAY_DIR/config/USER.md" "$CONFIG_DIR/"
+    cp "$FRIDAY_DIR/config/AGENTS.md" "$CONFIG_DIR/"
+    cp "$FRIDAY_DIR/config/BOOTSTRAP.md" "$CONFIG_DIR/"
+    echo "Config written to $CONFIG_DIR"
+fi
 
-# Give it a second to spin up
-sleep 2
+# --- Load .env if it exists ---
+if [ -f "$FRIDAY_DIR/.env" ]; then
+    set -a
+    source "$FRIDAY_DIR/.env"
+    set +a
+fi
 
-echo "Starting Friday Core (Rust Async Client)..."
-cd friday_core
-cargo run --release
+# --- Start Python backend ---
+echo "Starting Friday AI backend..."
+cd "$FRIDAY_DIR"
+.venv/bin/uvicorn friday_ai.server:app \
+    --host 127.0.0.1 \
+    --port 65535 \
+    --log-level warning \
+    > "$DATA_DIR/uvicorn.log" 2>&1 &
+BACKEND_PID=$!
 
-# When the Rust client exits, clean up the Python server
-echo "Cleaning up background Python service..."
-kill $UVICORN_PID
+# Wait for backend to be ready
+for i in {1..10}; do
+    if curl -s http://127.0.0.1:65535/health > /dev/null 2>&1; then
+        break
+    fi
+    sleep 0.5
+done
+
+# --- Parse args ---
+case "${1:-}" in
+    --daemon)
+        echo "Friday running in daemon mode (PID: $BACKEND_PID). Press Ctrl+C to stop."
+        trap "kill $BACKEND_PID 2>/dev/null" EXIT
+        wait $BACKEND_PID
+        ;;
+    --cli-only|"")
+        # Start Rust core
+        cd "$FRIDAY_DIR/friday_core"
+        if [ -f "target/release/friday_core" ]; then
+            ./target/release/friday_core "${@}"
+        else
+            echo "Building Friday Core (first time)..."
+            cargo build --release 2>&1 | tail -1
+            ./target/release/friday_core "${@}"
+        fi
+        # Cleanup
+        echo "Shutting down backend..."
+        kill $BACKEND_PID 2>/dev/null
+        ;;
+esac
