@@ -88,7 +88,7 @@ class Agent:
         # Build system prompt                                                  #
         # ------------------------------------------------------------------ #
         identity = load_identity(self.config_dir)
-        memory_context = self.memory.get_context_for_prompt()
+        memory_context = self.memory.get_context_for_prompt(query=message)
         tools_desc = self.tool_loader.get_tools_description()
         system_prompt = build_system_prompt(identity, tools_desc, memory_context)
 

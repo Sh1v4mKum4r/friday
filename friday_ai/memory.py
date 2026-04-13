@@ -134,11 +134,32 @@ class MemoryStore:
     # Prompt context assembly
     # ------------------------------------------------------------------
 
-    def get_context_for_prompt(self) -> str:
-        """Combine MEMORY.md and today's daily log into a context string.
+    def search_logs(self, keyword: str, max_results: int = 5) -> list[str]:
+        """Search all daily logs for lines containing *keyword* (case-insensitive).
 
-        Returns an empty string when both sources are empty/missing.
-        Sections are labelled ``## Memory`` and ``## Today's Log``.
+        Returns up to *max_results* matching lines, most recent first.
+        """
+        matches: list[str] = []
+        log_files = sorted(self.memory_dir.glob("????-??-??.md"), reverse=True)
+
+        for log_file in log_files:
+            if len(matches) >= max_results:
+                break
+            for line in log_file.read_text().splitlines():
+                if keyword.lower() in line.lower():
+                    matches.append(f"[{log_file.stem}] {line.strip()}")
+                    if len(matches) >= max_results:
+                        break
+
+        return matches
+
+    def get_context_for_prompt(self, query: str = "") -> str:
+        """Combine MEMORY.md, today's daily log, and relevant past logs.
+
+        When *query* is provided, searches past daily logs for related entries
+        and includes them in the context.
+
+        Returns an empty string when all sources are empty/missing.
         """
         sections: list[str] = []
 
@@ -151,5 +172,24 @@ class MemoryStore:
             log_text = log_path.read_text().strip()
             if log_text:
                 sections.append(f"## Today's Log\n\n{log_text}")
+
+        # Search past logs for relevant context
+        if query:
+            # Extract key words (skip short/common words)
+            words = [w for w in query.lower().split() if len(w) > 3]
+            relevant_lines: list[str] = []
+            for word in words[:3]:  # limit to 3 keywords
+                relevant_lines.extend(self.search_logs(word, max_results=3))
+
+            # Deduplicate
+            seen: set[str] = set()
+            unique: list[str] = []
+            for line in relevant_lines:
+                if line not in seen:
+                    seen.add(line)
+                    unique.append(line)
+
+            if unique:
+                sections.append("## Relevant Past Interactions\n\n" + "\n".join(unique[:5]))
 
         return "\n\n".join(sections)
