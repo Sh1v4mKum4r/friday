@@ -1,0 +1,10 @@
+/home/sh4d0w/Projects/jarvis/friday_core/target/release/deps/icu_normalizer-3455e79b5f62672a.d: /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/lib.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/properties.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/provider.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/uts46.rs
+
+/home/sh4d0w/Projects/jarvis/friday_core/target/release/deps/libicu_normalizer-3455e79b5f62672a.rlib: /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/lib.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/properties.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/provider.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/uts46.rs
+
+/home/sh4d0w/Projects/jarvis/friday_core/target/release/deps/libicu_normalizer-3455e79b5f62672a.rmeta: /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/lib.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/properties.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/provider.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/uts46.rs
+
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/lib.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/properties.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/provider.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/icu_normalizer-2.2.0/src/uts46.rs:

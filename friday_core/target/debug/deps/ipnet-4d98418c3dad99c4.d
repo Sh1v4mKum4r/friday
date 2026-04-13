@@ -1,0 +1,9 @@
+/home/sh4d0w/Projects/jarvis/friday_core/target/debug/deps/ipnet-4d98418c3dad99c4.d: /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/lib.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/ipext.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/ipnet.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/mask.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/parser.rs
+
+/home/sh4d0w/Projects/jarvis/friday_core/target/debug/deps/libipnet-4d98418c3dad99c4.rmeta: /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/lib.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/ipext.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/ipnet.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/mask.rs /home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/parser.rs
+
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/lib.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/ipext.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/ipnet.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/mask.rs:
+/home/sh4d0w/.local/share/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ipnet-2.12.0/src/parser.rs:
