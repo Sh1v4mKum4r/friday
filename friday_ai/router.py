@@ -14,29 +14,128 @@ import re
 from friday_ai.providers.base import BaseProvider, ProviderResponse
 
 # ---------------------------------------------------------------------------
-# Complexity / routing heuristics — compiled at module level for performance
+# Intent classification — compiled regex at module level for performance
 # ---------------------------------------------------------------------------
 
-_SIMPLE_KEYWORDS: re.Pattern = re.compile(
+# --- System / desktop actions — handle locally (Ollama) ---
+_SYSTEM_KEYWORDS: re.Pattern = re.compile(
     r"\b("
-    r"clipboard|copy|paste|notify|brightness|volume|window|workspace"
-    r"|move|close|open app|screenshot|what time"
+    # Clipboard & copy
+    r"clipboard|copy|paste|yank"
+    # Notifications
+    r"|notify|notification|alert|remind me"
+    # Display & brightness
+    r"|brightness|bright|dim|backlight|screen light"
+    # Volume & audio
+    r"|volume|mute|unmute|louder|quieter|sound|audio|speaker"
+    # Media playback
+    r"|play|pause|next track|previous track|skip|song|music|media"
+    # Window & workspace management
+    r"|window|workspace|focus|tile|float|fullscreen|minimize|maximize|split"
+    r"|move window|close window|snap|resize"
+    # Desktop environment
+    r"|launch|open app|kill app|taskbar|panel|wallpaper|theme|dark mode|light mode"
+    # Screenshot & screen
+    r"|screenshot|screen ?shot|screen ?cap|record screen|screencast|screen read|ocr"
+    # Mouse & keyboard
+    r"|mouse|click|right.?click|double.?click|drag|scroll|cursor"
+    r"|type|press key|key ?combo|hotkey|shortcut"
+    # Quick system queries
+    r"|what time|uptime|battery|cpu temp|ram usage|disk space|ip address"
+    # File ops (simple)
+    r"|read file|write file|cat |ls |list files|show file"
+    # Cron & scheduling
+    r"|cron|schedule|every hour|every day|every morning|every night"
+    # System management
+    r"|shutdown|reboot|restart|suspend|hibernate|lock screen|log ?out"
+    r"|wifi|bluetooth|vpn|proxy|network|connect|disconnect"
+    # Package management
+    r"|install|uninstall|update system|pacman|yay|upgrade"
     r")\b",
     re.IGNORECASE,
 )
 
+# --- Complex tasks — escalate to cloud provider ---
 _COMPLEX_KEYWORDS: re.Pattern = re.compile(
     r"\b("
-    r"write|implement|create|build|refactor|debug|explain|analyze"
-    r"|compare|summarize|translate|generate|design"
+    # Code generation & development (standalone verbs that imply complex work)
+    r"implement|refactor|debug|architect"
+    r"|write (?:a |an |the )?(?:\w+ )*(?:script|program|function|class|module|code|test|api|app|service|server|client|tool|bot|daemon)"
+    r"|write code"
+    r"|fix (?:the |this |a )?(?:bug|error|issue)"
+    r"|code review|pull request|git (?:rebase|cherry)"
+    # Standalone creative verbs (when followed by a noun, implies complex task)
+    r"|design \w+|create \w+|build \w+|generate \w+|develop \w+|make \w+"
+    # Analysis & reasoning
+    r"|explain (?:how|why|what)|analyze|evaluate|assess|critique"
+    r"|compare \w+|pros (?:and )?cons"
+    r"|trade.?offs?|architecture"
+    # Writing & generation
+    r"|write (?:a |an )?\w*(?:essay|article|report|documentation|readme|doc)"
+    r"|summarize|summarise|tldr|tl;dr"
+    # Translation
+    r"|translate|convert (?:this |from |to )"
+    # Math & data
+    r"|solve|prove|derive|calculate"
+    r"|data (?:analysis|science|model)|machine learning|train (?:a )?model"
+    # Research
+    r"|research|investigate|deep dive|comprehensive|thorough|detailed"
+    r"|literature review|state of the art"
     r")\b",
     re.IGNORECASE,
 )
 
+# --- Web search — needs live/current information ---
 _SEARCH_KEYWORDS: re.Pattern = re.compile(
     r"\b("
-    r"latest|current|today|news|weather|price|stock|score|release|update"
+    # Temporal markers
+    r"latest|current(?:ly)?|today|yesterday|this (?:week|month|year)"
+    r"|recent(?:ly)?|right now|as of"
+    # News & events
+    r"|news|headline|happening|event|announcement|release(?:d)?"
+    # Live data
+    r"|weather|forecast|temperature outside"
+    r"|price of|stock (?:price|market)|crypto|bitcoin|ethereum"
+    r"|score|match|game result|standings|tournament"
+    r"|exchange rate|currency"
+    # Lookups
+    r"|who is|when (?:is|was|did)|where is|how much (?:does|is)"
+    r"|status of|track(?:ing)?|shipping|flight"
+    # Trending
+    r"|trending|popular|viral|top (?:\d+|ten|five)"
+    r"|what(?:'s| is) new"
     r")\b",
+    re.IGNORECASE,
+)
+
+# --- Dangerous commands — require confirmation ---
+_DANGEROUS_KEYWORDS: re.Pattern = re.compile(
+    r"\b("
+    r"rm -rf|mkfs|dd if=|format (?:disk|drive|partition)"
+    r"|drop (?:table|database)|truncate|delete (?:all|everything)"
+    r"|chmod 777|chmod -R"
+    r"|curl .* \| (?:sudo )?(?:bash|sh)"
+    r"|wget .* \| (?:sudo )?(?:bash|sh)"
+    r"|> /dev/sd|> /dev/nvme"
+    r"|kill -9 -1|killall"
+    r"|passwd|chown -R|sudo su"
+    r"|systemctl (?:disable|mask) (?:sddm|NetworkManager|systemd)"
+    r"|pacman -Rns (?:linux|base|systemd|glibc)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# --- Conversational / simple — no tools needed, Ollama handles fine ---
+_CONVERSATIONAL: re.Pattern = re.compile(
+    r"^("
+    r"(?:hi|hello|hey|yo|sup|good (?:morning|afternoon|evening|night))"
+    r"|(?:thanks?|thank you|thx|cheers)"
+    r"|(?:bye|goodbye|see you|later|good ?night)"
+    r"|(?:how are you|what(?:'s| is) up|how(?:'s| is) it going)"
+    r"|(?:who are you|what(?:'s| is) your name|what can you do)"
+    r"|(?:yes|no|ok|okay|sure|nah|nope|yep|yeah)"
+    r"|(?:lol|haha|lmao|nice|cool|awesome|great)"
+    r")[\s?!.]*$",
     re.IGNORECASE,
 )
 
@@ -46,28 +145,56 @@ _SEARCH_KEYWORDS: re.Pattern = re.compile(
 # ---------------------------------------------------------------------------
 
 
+def classify_intent(prompt: str) -> str:
+    """Classify a prompt into an intent category.
+
+    Returns one of: 'system', 'complex', 'search', 'dangerous', 'chat', 'unknown'
+
+    Priority: dangerous > chat > search > complex > system > unknown.
+    Complex is checked before system because multi-word complex patterns
+    (e.g. "write a script") are more specific than single system keywords.
+    """
+    if _DANGEROUS_KEYWORDS.search(prompt):
+        return "dangerous"
+    if _CONVERSATIONAL.match(prompt):
+        return "chat"
+    if needs_web_search(prompt):
+        return "search"
+    # Check complex BEFORE system — complex patterns are more specific
+    if _COMPLEX_KEYWORDS.search(prompt):
+        return "complex"
+    if _SYSTEM_KEYWORDS.search(prompt):
+        return "system"
+    if len(prompt) > 200:
+        return "complex"
+    return "unknown"
+
+
 def should_escalate(prompt: str) -> bool:
     """Return True if the prompt should be escalated to a cloud provider.
 
-    Escalation is triggered when:
-    - The prompt exceeds 200 characters, OR
-    - The prompt contains complex keywords AND does not contain simple keywords
-      (simple keywords override complex ones — the task is likely a desktop action).
+    System keywords override complex — if a prompt mentions both window
+    management and code writing, it's treated as a system/desktop action.
     """
+    if _DANGEROUS_KEYWORDS.search(prompt):
+        return False  # dangerous prompts are blocked, not escalated
+    if _SYSTEM_KEYWORDS.search(prompt):
+        return False  # system keywords take priority — keep local
+    if _COMPLEX_KEYWORDS.search(prompt):
+        return True
     if len(prompt) > 200:
         return True
-
-    if _COMPLEX_KEYWORDS.search(prompt):
-        # Simple keywords take precedence; if found, it's a desktop action
-        if not _SIMPLE_KEYWORDS.search(prompt):
-            return True
-
     return False
 
 
 def needs_web_search(prompt: str) -> bool:
     """Return True if the prompt requires a live web search."""
     return bool(_SEARCH_KEYWORDS.search(prompt))
+
+
+def is_dangerous(prompt: str) -> bool:
+    """Return True if the prompt contains potentially destructive commands."""
+    return bool(_DANGEROUS_KEYWORDS.search(prompt))
 
 
 # ---------------------------------------------------------------------------

@@ -236,6 +236,13 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         loaded = app.state.agent.load_session()
         return {"status": "loaded" if loaded else "no session found"}
 
+    @app.post("/classify")
+    async def classify(request: ChatRequest):
+        """Classify a message's intent without sending it to an LLM."""
+        from .router import classify_intent
+        intent = classify_intent(request.message)
+        return {"message": request.message, "intent": intent}
+
     return app
 
 

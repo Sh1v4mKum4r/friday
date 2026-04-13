@@ -12,7 +12,7 @@ from pathlib import Path
 from .identity import build_system_prompt, delete_bootstrap, load_identity
 from .memory import MemoryStore
 from .providers.base import ProviderResponse
-from .router import ProviderRouter
+from .router import ProviderRouter, classify_intent, is_dangerous
 from .tool_loader import ToolLoader
 
 logger = logging.getLogger(__name__)
@@ -139,10 +139,19 @@ class Agent:
                 # There are tool calls — execute each and build a follow-up prompt
                 result_parts: list[str] = []
                 for tool_call in response.tool_calls:
-                    try:
-                        result = self.tool_loader.execute(tool_call.name, tool_call.arguments)
-                    except Exception as exc:  # noqa: BLE001
-                        result = f"Error executing {tool_call.name}: {exc}"
+                    # Safety check: block dangerous commands
+                    args_str = " ".join(str(v) for v in tool_call.arguments.values())
+                    if is_dangerous(args_str):
+                        result = (
+                            f"BLOCKED: '{args_str[:100]}' looks dangerous. "
+                            "Friday refuses to run destructive commands without explicit confirmation. "
+                            "Tell the user what you were about to do and ask if they want to proceed."
+                        )
+                    else:
+                        try:
+                            result = self.tool_loader.execute(tool_call.name, tool_call.arguments)
+                        except Exception as exc:  # noqa: BLE001
+                            result = f"Error executing {tool_call.name}: {exc}"
                     result_parts.append(f"Tool '{tool_call.name}' returned: {result}")
 
                 current_prompt = "\n".join(result_parts)
