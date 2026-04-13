@@ -50,11 +50,40 @@ The implementation plan will assign specific tasks. Likely areas for you:
 3. **Identity system** — SOUL.md, USER.md, BOOTSTRAP.md loader and first-run ritual
 4. **Panel/launcher integration** — Cosmic panel applet + Cosmic launcher plugin
 
+**Implementation is DONE. Your tasks now are polish and extension:**
+
+### Task A: Polish DE Abstraction Layer
+File: `friday_ai/tools/core/de.py`
+- The Cosmic path currently uses a generic `busctl call` — this needs real Cosmic compositor DBus methods
+- Test on actual Cosmic DE: workspace switching, window focus, window move
+- Hyprland path works (`hyprctl {cmd}`) but needs testing too
+- Ensure Wayland env vars (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`, `HYPRLAND_INSTANCE_SIGNATURE`) are passed
+
+### Task B: Cosmic Panel Applet
+File: `friday_core/src/panel.rs`
+- Currently a stub that only outputs Waybar JSON
+- Build a real Cosmic panel applet using `libcosmic` (Rust) that shows Friday's status
+- Or if libcosmic is too complex, write a simple script that integrates with Cosmic's panel config
+
+### Task C: Cosmic Launcher Integration
+File: `friday_core/src/launcher.rs`
+- Currently falls back to Rofi for Cosmic
+- Investigate Cosmic's built-in launcher/dialog system
+- If Cosmic has a dmenu-like mode, use it. Otherwise Rofi is fine as fallback.
+
+### Task D: Additional Tool Plugins (optional)
+Directory: `friday_ai/tools/core/` or `~/.config/friday/tools/plugins/`
+- Screenshot tool (using `grim` for Wayland)
+- Bluetooth toggle
+- Audio/volume control
+- System info (CPU temp, RAM usage, battery)
+
 **Important technical constraints:**
-- Pass Wayland env vars (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`, `HYPRLAND_INSTANCE_SIGNATURE`) when executing DE commands
 - Keep total tools under ~20 for reliable 7B model tool-calling
 - Use `importlib.reload()` with proper cleanup for `/reload` hot-reloading
 - Port 65535, configurable in config.toml
+- Full spec: `docs/superpowers/specs/2026-04-13-friday-redesign-design.md`
+- Full plan: `docs/superpowers/plans/2026-04-13-friday-redesign.md`
 
 ## Hardware Context
 - Arch Linux, i5-10300H, 8GB RAM, GTX 1650 4GB VRAM
