@@ -244,5 +244,8 @@ def main() -> None:
     )
 
 
+# Module-level app for uvicorn (e.g., uvicorn friday_ai.server:app)
+app = create_app()
+
 if __name__ == "__main__":
     main()

@@ -148,12 +148,18 @@ class ProviderRouter:
         # ------------------------------------------------------------------ #
         for provider in candidates:
             if await provider.is_available():
-                return await provider.send_message(
-                    prompt=prompt,
-                    tools=tools,
-                    history=history,
-                    system_prompt=system_prompt,
-                )
+                try:
+                    response = await provider.send_message(
+                        prompt=prompt,
+                        tools=tools,
+                        history=history,
+                        system_prompt=system_prompt,
+                    )
+                    # If provider returned an empty error, try next
+                    if response.content or response.tool_calls:
+                        return response
+                except Exception:
+                    continue  # Try next provider
 
         # ------------------------------------------------------------------ #
         # All providers failed                                                 #

@@ -63,6 +63,13 @@ class OllamaProvider(BaseProvider):
                 json=payload,
             )
 
+        if response.status_code != 200:
+            error_text = response.text[:200]
+            return ProviderResponse(
+                content=f"Ollama error ({response.status_code}): {error_text}",
+                provider_name=self.name,
+            )
+
         data = response.json()
         message = data.get("message", {})
 
@@ -84,11 +91,19 @@ class OllamaProvider(BaseProvider):
         )
 
     async def is_available(self) -> bool:
-        """Return True if Ollama responds with HTTP 200 on /api/tags."""
+        """Return True if Ollama is running and the configured model exists."""
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(f"{self.base_url}/api/tags")
-            return response.status_code == 200
+            if response.status_code != 200:
+                return False
+            data = response.json()
+            models = [m.get("name", "") for m in data.get("models", [])]
+            # Check if our model (or a prefix match like "qwen2.5:7b") is available
+            return any(
+                self.model in m or m.startswith(self.model.split(":")[0])
+                for m in models
+            )
         except Exception:
             return False
 

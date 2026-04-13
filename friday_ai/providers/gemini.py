@@ -153,27 +153,29 @@ class GeminiCLIProvider(BaseProvider):
         history: list[dict],
         system_prompt: str = "",
     ) -> str:
-        """Build a single text prompt including optional tool descriptions."""
+        """Build a compact prompt for CLI — skip system prompt, minimal tools."""
         parts: list[str] = []
 
-        if system_prompt:
-            parts.append(f"[System]: {system_prompt}\n")
-
-        for msg in history:
+        # Only include last 3 history messages to keep prompt short
+        for msg in history[-3:]:
             role = msg.get("role", "user").capitalize()
-            parts.append(f"[{role}]: {msg.get('content', '')}")
+            content = msg.get("content", "")[:500]
+            parts.append(f"[{role}]: {content}")
 
         if tools:
-            tool_descriptions = json.dumps(tools, indent=2)
+            # Compact tool list — just names and descriptions, no schemas
+            tool_lines = []
+            for t in tools:
+                fn = t.get("function", {})
+                params = ", ".join(fn.get("parameters", {}).get("required", []))
+                tool_lines.append(f"  {fn.get('name', '')}({params}): {fn.get('description', '')[:80]}")
             parts.append(
-                "\n[Available Tools]\n"
-                "If you need to call a tool, respond with exactly:\n"
-                'TOOL_CALL: {"name": "<tool_name>", "args": {<arguments>}}\n'
-                f"\nTool schemas:\n{tool_descriptions}\n"
+                "Tools (use TOOL_CALL: {\"name\": \"...\", \"args\": {...}} to call):\n"
+                + "\n".join(tool_lines)
             )
 
-        parts.append(f"[User]: {prompt}")
-        return "\n".join(parts)
+        parts.append(prompt)
+        return "\n\n".join(parts)
 
     async def send_message(
         self,
@@ -185,12 +187,23 @@ class GeminiCLIProvider(BaseProvider):
         """Shell out to `gemini -p <prompt>` and parse the response."""
         full_prompt = self._build_prompt(prompt, tools, history, system_prompt)
 
-        result = subprocess.run(
-            ["gemini", "-p", full_prompt],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
+        try:
+            result = subprocess.run(
+                ["gemini", "-p", full_prompt],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        except subprocess.TimeoutExpired:
+            return ProviderResponse(
+                content="Gemini CLI timed out.",
+                provider_name=self.name,
+            )
+        except FileNotFoundError:
+            return ProviderResponse(
+                content="Gemini CLI not found.",
+                provider_name=self.name,
+            )
         output = result.stdout.strip()
 
         tool_calls: list[ToolCall] = []

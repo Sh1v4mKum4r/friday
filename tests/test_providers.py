@@ -450,6 +450,7 @@ class TestOllamaProviderIsAvailable:
     async def test_is_available_returns_true_when_200(self):
         mock_response = MagicMock()
         mock_response.status_code = 200
+        mock_response.json.return_value = {"models": [{"name": "qwen2.5:7b"}]}
 
         with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
             mock_get.return_value = mock_response
