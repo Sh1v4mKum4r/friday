@@ -27,6 +27,7 @@ from .providers.gemini import GeminiCLIProvider, GeminiProvider
 from .providers.ollama import OllamaProvider
 from .providers.openai_provider import OpenAIProvider
 from .providers.web_search import WebSearchProvider
+from .mcp_client import MCPManager
 from .router import ProviderRouter
 from .tool_loader import ToolLoader
 from .tools.core import memory_tool
@@ -157,11 +158,15 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     )
     tool_loader.discover()
 
+    # MCP server connections
+    mcp_manager = MCPManager(config_dir)
+
     agent = Agent(
         router=router,
         tool_loader=tool_loader,
         config_dir=config_dir,
         data_dir=data_dir,
+        mcp_manager=mcp_manager,
     )
 
     # Wire memory tool
@@ -173,6 +178,17 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     app.state.agent = agent
     app.state.config = config
     app.state.tool_loader = tool_loader
+    app.state.mcp_manager = mcp_manager
+
+    @app.on_event("startup")
+    async def startup():
+        connected = await mcp_manager.connect_all()
+        if connected:
+            logger.info("MCP servers connected: %s", connected)
+
+    @app.on_event("shutdown")
+    async def shutdown():
+        await mcp_manager.disconnect_all()
 
     # ------------------------------------------------------------------ #
     # Endpoints                                                            #
@@ -242,6 +258,24 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         from .router import classify_intent
         intent = classify_intent(request.message)
         return {"message": request.message, "intent": intent}
+
+    @app.get("/mcp/status")
+    async def mcp_status():
+        """Show connected MCP servers and their tools."""
+        return {
+            "servers": list(mcp_manager._sessions.keys()),
+            "tools": [
+                {"name": t.name, "description": t.description, "server": t.server_name}
+                for t in mcp_manager.tools.values()
+            ],
+        }
+
+    @app.post("/mcp/reconnect")
+    async def mcp_reconnect():
+        """Disconnect and reconnect all MCP servers."""
+        await mcp_manager.disconnect_all()
+        connected = await mcp_manager.connect_all()
+        return {"connected": connected}
 
     return app
 

@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 
 from .identity import build_system_prompt, delete_bootstrap, load_identity
+from .mcp_client import MCPManager
 from .memory import MemoryStore
 from .providers.base import ProviderResponse
 from .router import ProviderRouter, classify_intent, is_dangerous
@@ -45,11 +46,13 @@ class Agent:
         tool_loader: ToolLoader,
         config_dir: Path,
         data_dir: Path,
+        mcp_manager: MCPManager | None = None,
     ) -> None:
         self.router = router
         self.tool_loader = tool_loader
         self.config_dir = config_dir
         self.memory = MemoryStore(data_dir)
+        self.mcp_manager = mcp_manager
         self.history: list[dict] = []
 
     # ------------------------------------------------------------------
@@ -89,13 +92,18 @@ class Agent:
         # ------------------------------------------------------------------ #
         identity = load_identity(self.config_dir)
         memory_context = self.memory.get_context_for_prompt(query=message)
-        tools_desc = self.tool_loader.get_tools_description()
-        system_prompt = build_system_prompt(identity, tools_desc, memory_context)
 
-        # ------------------------------------------------------------------ #
-        # Get tool schemas                                                      #
-        # ------------------------------------------------------------------ #
+        # Combine built-in + MCP tool descriptions and schemas
+        tools_desc = self.tool_loader.get_tools_description()
         tool_schemas = self.tool_loader.get_tool_schemas()
+
+        if self.mcp_manager and self.mcp_manager.tools:
+            mcp_desc = self.mcp_manager.get_tools_description()
+            if mcp_desc:
+                tools_desc += "\n" + mcp_desc
+            tool_schemas.extend(self.mcp_manager.get_tool_schemas())
+
+        system_prompt = build_system_prompt(identity, tools_desc, memory_context)
 
         # ------------------------------------------------------------------ #
         # Add user message to history and daily log                            #
@@ -149,7 +157,11 @@ class Agent:
                         )
                     else:
                         try:
-                            result = self.tool_loader.execute(tool_call.name, tool_call.arguments)
+                            # Route to MCP or built-in tool
+                            if self.mcp_manager and self.mcp_manager.is_mcp_tool(tool_call.name):
+                                result = await self.mcp_manager.call_tool(tool_call.name, tool_call.arguments)
+                            else:
+                                result = self.tool_loader.execute(tool_call.name, tool_call.arguments)
                         except Exception as exc:  # noqa: BLE001
                             result = f"Error executing {tool_call.name}: {exc}"
                     result_parts.append(f"Tool '{tool_call.name}' returned: {result}")
