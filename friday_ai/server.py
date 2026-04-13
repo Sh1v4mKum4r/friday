@@ -131,11 +131,11 @@ def create_app(config_path: Path | None = None) -> FastAPI:
             )
         )
 
-    # 3. CLI fallbacks (when no API key is set)
-    if not config.providers.gemini_api_key:
-        providers.append(GeminiCLIProvider())
+    # 3. CLI fallbacks (when no API key is set) — Claude first, faster/more reliable
     if not config.providers.claude_api_key:
         providers.append(ClaudeCLIProvider())
+    if not config.providers.gemini_api_key:
+        providers.append(GeminiCLIProvider())
 
     # 4. Web search as last resort
     providers.append(WebSearchProvider())
