@@ -32,6 +32,9 @@ ollama_url = "http://localhost:11434"
 gemini_api_key = ""
 claude_api_key = ""
 openai_api_key = ""
+gemini_model = "gemini-2.5-flash"
+claude_model = "claude-sonnet-4-6"
+openai_model = "gpt-4o"
 
 [server]
 port = 65535
@@ -40,6 +43,7 @@ host = "127.0.0.1"
 [behavior]
 auto_escalate = true
 max_workers = 4
+provider_mode = "fallback"
 
 [de]
 override = ""

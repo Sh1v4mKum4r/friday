@@ -109,11 +109,26 @@ def create_app(config_path: Path | None = None) -> FastAPI:
 
     # 2. API providers (if keys are configured)
     if config.providers.gemini_api_key:
-        providers.append(GeminiProvider(api_key=config.providers.gemini_api_key))
+        providers.append(
+            GeminiProvider(
+                api_key=config.providers.gemini_api_key,
+                model=config.providers.gemini_model,
+            )
+        )
     if config.providers.claude_api_key:
-        providers.append(ClaudeProvider(api_key=config.providers.claude_api_key))
+        providers.append(
+            ClaudeProvider(
+                api_key=config.providers.claude_api_key,
+                model=config.providers.claude_model,
+            )
+        )
     if config.providers.openai_api_key:
-        providers.append(OpenAIProvider(api_key=config.providers.openai_api_key))
+        providers.append(
+            OpenAIProvider(
+                api_key=config.providers.openai_api_key,
+                model=config.providers.openai_model,
+            )
+        )
 
     # 3. CLI fallbacks (when no API key is set)
     if not config.providers.gemini_api_key:

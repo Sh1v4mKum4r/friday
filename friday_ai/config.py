@@ -26,6 +26,9 @@ class ProvidersConfig:
     gemini_api_key: str = ""
     claude_api_key: str = ""
     openai_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    claude_model: str = "claude-sonnet-4-6"
+    openai_model: str = "gpt-4o"
 
 
 @dataclass
@@ -38,6 +41,7 @@ class ServerConfig:
 class BehaviorConfig:
     auto_escalate: bool = True
     max_workers: int = 4
+    provider_mode: str = "fallback"  # "fallback" | "race"
 
 
 @dataclass
@@ -82,6 +86,9 @@ def load_config(path: str | Path) -> FridayConfig:
         gemini_api_key=p.get("gemini_api_key", ""),
         claude_api_key=p.get("claude_api_key", ""),
         openai_api_key=p.get("openai_api_key", ""),
+        gemini_model=p.get("gemini_model", ProvidersConfig.gemini_model),
+        claude_model=p.get("claude_model", ProvidersConfig.claude_model),
+        openai_model=p.get("openai_model", ProvidersConfig.openai_model),
     )
 
     # Apply env-var overrides only when the TOML value is empty
@@ -104,6 +111,7 @@ def load_config(path: str | Path) -> FridayConfig:
     behavior = BehaviorConfig(
         auto_escalate=b.get("auto_escalate", BehaviorConfig.auto_escalate),
         max_workers=b.get("max_workers", BehaviorConfig.max_workers),
+        provider_mode=b.get("provider_mode", BehaviorConfig.provider_mode),
     )
 
     # --- de ---
