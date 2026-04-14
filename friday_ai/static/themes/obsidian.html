@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Friday - Obsidian Chat (Refined)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-on-surface": "#55545d",
+                    "surface-container": "#11111a",
+                    "inverse-primary": "#6e3bd7",
+                    "tertiary-dim": "#d9d9e1",
+                    "surface-container-low": "#0d0d14",
+                    "outline": "#76747e",
+                    "on-primary-container": "#2b006e",
+                    "surface-variant": "#1a1a24",
+                    "on-background": "#f2effa",
+                    "on-error-container": "#ffb2b9",
+                    "surface": "#08080f",
+                    "on-tertiary-container": "#53555b",
+                    "on-secondary": "#2b0065",
+                    "on-secondary-fixed": "#440097",
+                    "secondary-dim": "#8b4ef7",
+                    "secondary-container": "#5d03ca",
+                    "on-error": "#490013",
+                    "on-surface-variant": "#acaab4",
+                    "primary-dim": "#8455ef",
+                    "primary": "#ba9eff",
+                    "error": "#ff6e84",
+                    "on-primary-fixed-variant": "#370086",
+                    "primary-fixed": "#ae8dff",
+                    "surface-bright": "#1a1a26",
+                    "on-secondary-fixed-variant": "#651ad1",
+                    "on-primary": "#39008c",
+                    "background": "#08080f",
+                    "on-surface": "#f2effa",
+                    "secondary": "#b088ff",
+                    "on-tertiary-fixed-variant": "#5d5f65",
+                    "surface-dim": "#08080f",
+                    "surface-tint": "#ba9eff",
+                    "secondary-fixed": "#dcc9ff",
+                    "on-tertiary": "#5c5d64",
+                    "secondary-fixed-dim": "#d0b8ff",
+                    "tertiary-fixed-dim": "#d9d9e1",
+                    "inverse-surface": "#fcf8ff",
+                    "tertiary-fixed": "#e7e7ef",
+                    "error-dim": "#d73357",
+                    "tertiary-container": "#e7e7ef",
+                    "on-tertiary-fixed": "#414349",
+                    "primary-container": "#ae8dff",
+                    "primary-fixed-dim": "#a27cff",
+                    "tertiary": "#f6f6fe",
+                    "outline-variant": "#2a2a35",
+                    "surface-container-high": "#161621",
+                    "on-primary-fixed": "#000000",
+                    "surface-container-lowest": "#05050a",
+                    "on-secondary-container": "#decbff",
+                    "surface-container-highest": "#1c1c28",
+                    "error-container": "#a70138"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.5rem",
+                    "lg": "0.75rem",
+                    "xl": "1rem",
+                    "2xl": "1.25rem",
+                    "3xl": "1.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"],
+                    "mono": ["JetBrains Mono"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #08080f;
+            color: #f2effa;
+            scrollbar-width: thin;
+            scrollbar-color: #1a1a24 #08080f;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #08080f; }
+        ::-webkit-scrollbar-thumb { background: #1a1a24; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ba9eff; }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .user-glass {
+            background: rgba(186, 158, 255, 0.03);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow: 0 0 20px rgba(186, 158, 255, 0.08);
+        }
+        .pulse-secondary {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .active { background: rgba(186, 158, 255, 0.1); color: #ba9eff; border-color: rgba(186, 158, 255, 0.2); }
+        .convo-item {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: background 0.2s;
+        }
+        .convo-item:hover { background: rgba(255,255,255,0.03); }
+        .convo-item.active { background: rgba(186, 158, 255, 0.08); }
+        .convo-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .convo-delete { opacity: 0; background: none; border: none; color: #ff6e84; cursor: pointer; padding: 4px; transition: opacity 0.2s; }
+        .convo-item:hover .convo-delete { opacity: 1; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden font-body selection:bg-primary/30">
+<!-- SideNavBar -->
+<aside id="sidebar" class="flex flex-col h-full py-8 bg-[#0a0a12]/80 backdrop-blur-xl w-[280px] sticky left-0 top-0 border-r border-outline-variant/10 transition-all z-[60]">
+<!-- Header -->
+<div class="px-8 mb-10">
+<div class="flex items-center gap-4">
+<div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-primary to-primary-dim flex items-center justify-center pulse-secondary">
+<span class="text-on-primary text-sm font-bold">F</span>
+</div>
+<div>
+<h1 class="text-lg font-semibold tracking-tight text-[#ba9eff]">Friday</h1>
+<p class="text-[9px] uppercase tracking-[0.2em] text-on-surface-variant/40 font-medium">Curator Engine</p>
+</div>
+</div>
+</div>
+<!-- CTA -->
+<div class="px-6 mb-8">
+<button id="newConvoBtn" class="w-full flex items-center gap-3 px-5 py-3 rounded-2xl bg-primary/10 text-primary text-sm font-medium hover:bg-primary/15 transition-colors">
+  <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+  New Session
+</button>
+</div>
+<!-- History -->
+<nav class="flex-1 overflow-y-auto px-4">
+<p class="px-4 mb-4 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/30 font-semibold">Curation History</p>
+<div id="conversationList" class="flex-1 overflow-y-auto space-y-2 px-5">
+</div>
+</nav>
+<!-- Footer -->
+<div class="mt-auto px-6 pt-6 border-t border-outline-variant/10">
+<div class="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-lg">electric_bolt</span>
+<span class="text-xs font-medium opacity-60">Status</span>
+</div>
+<div class="flex gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(186,158,255,0.6)]"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-primary/20"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col relative bg-background overflow-hidden">
+<!-- TopAppBar -->
+<header class="flex justify-end items-center px-12 h-20 w-full sticky top-0 z-50 bg-transparent backdrop-blur-xl border-b border-white/5">
+<div class="flex items-center gap-8">
+<button class="text-[#f2effa]/40 hover:text-[#ba9eff] transition-all">
+<span class="material-symbols-outlined text-[22px]">tune</span>
+</button>
+<button id="settingsBtn" class="p-2.5 rounded-xl hover:bg-white/5 transition-colors text-[#f2effa]/40 hover:text-[#ba9eff]">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-9 h-9 rounded-2xl overflow-hidden border border-white/10 ring-4 ring-white/5">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRotIOgJypDKw2kloSWTVN2vhYSEYkWvFrkaNNwEAVYlHKn06l9pAyhGO1Ou8Dkxo0MHu6xDtmunLrrIA-K5hFUM-Uu99MXwxXCYj8thc6pXhyzoQBg0REK7tgXGaJYpZ3vCt1AI0LlN4ecKEeJUz3TY3wb3ofJdNSkMyG_sdJ_FXH5ocfszYaas_jQTkpIleh9a7td5yhbDSUI2v6BWSwfQ26F9GglnbNgPvVErirz-OafIjbGAZ0tW5u-PrlX4Ls4Ia5-pO5e0E"/>
+</div>
+</div>
+</header>
+<!-- Empty State -->
+<div id="emptyState" class="hidden flex flex-col items-center justify-center min-h-[60vh] px-8 text-center">
+  <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-primary-dim flex items-center justify-center mb-8 pulse-secondary">
+    <span class="text-3xl font-bold text-on-primary">F</span>
+  </div>
+  <h2 class="text-2xl md:text-4xl font-bold text-on-surface mb-3">What can I help with?</h2>
+  <p class="text-on-surface-variant/60 text-sm mb-10 max-w-md">I'm Friday, your AI system assistant.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-3xl w-full">
+    <button onclick="window.fridayQuickSend('Draft an email')" class="glass border border-white/5 rounded-2xl p-4 text-left hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:20px;">mail</span>
+      <div class="text-sm font-medium text-on-surface">Draft an email</div>
+      <div class="text-xs text-on-surface-variant/50 mt-1">Compose professional messages</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Explain this code')" class="glass border border-white/5 rounded-2xl p-4 text-left hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:20px;">code</span>
+      <div class="text-sm font-medium text-on-surface">Explain code</div>
+      <div class="text-xs text-on-surface-variant/50 mt-1">Break down complex logic</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Analyze this data')" class="glass border border-white/5 rounded-2xl p-4 text-left hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:20px;">analytics</span>
+      <div class="text-sm font-medium text-on-surface">Analyze data</div>
+      <div class="text-xs text-on-surface-variant/50 mt-1">Insights and visualization</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Summarize this text')" class="glass border border-white/5 rounded-2xl p-4 text-left hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:20px;">summarize</span>
+      <div class="text-sm font-medium text-on-surface">Summarize text</div>
+      <div class="text-xs text-on-surface-variant/50 mt-1">Condense long content</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Help me brainstorm')" class="glass border border-white/5 rounded-2xl p-4 text-left hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:20px;">lightbulb</span>
+      <div class="text-sm font-medium text-on-surface">Brainstorm</div>
+      <div class="text-xs text-on-surface-variant/50 mt-1">Generate fresh ideas</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Run a system command')" class="glass border border-white/5 rounded-2xl p-4 text-left hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:20px;">terminal</span>
+      <div class="text-sm font-medium text-on-surface">Run command</div>
+      <div class="text-xs text-on-surface-variant/50 mt-1">Execute system tasks</div>
+    </button>
+  </div>
+</div>
+<!-- Message Stream -->
+<section id="chatArea" class="flex-1 overflow-y-auto px-6 md:px-24 py-12 space-y-16">
+</section>
+<!-- Input Area Wrapper -->
+<div class="p-8 md:px-24 md:pb-12 bg-gradient-to-t from-background via-background/95 to-transparent relative z-10">
+<!-- BottomNavBar / Mode Buttons -->
+<div class="flex items-center gap-2 justify-center mt-3 mb-6">
+  <button id="modeChat" class="px-3 py-1.5 rounded-xl text-[11px] font-medium bg-primary/10 text-primary border border-primary/20 transition-all">Chat</button>
+  <button id="modeCommand" class="px-3 py-1.5 rounded-xl text-[11px] font-medium text-on-surface-variant/50 hover:bg-white/5 transition-all">Command</button>
+  <button id="modeSearch" class="px-3 py-1.5 rounded-xl text-[11px] font-medium text-on-surface-variant/50 hover:bg-white/5 transition-all">Search</button>
+</div>
+<!-- Input Bar -->
+<div class="max-w-4xl mx-auto relative group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary/10 to-primary-dim/10 rounded-[32px] blur-xl opacity-20 group-focus-within:opacity-100 transition-opacity"></div>
+<div class="relative flex items-center bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[28px] p-2.5 pl-8 shadow-2xl transition-all focus-within:border-primary/30">
+<button class="text-on-surface-variant/40 hover:text-primary transition-colors pr-5 group/btn">
+<span class="material-symbols-outlined text-[22px]">attach_file</span>
+</button>
+<input id="messageInput" class="w-full bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-on-surface-variant/20 py-4 text-sm font-light tracking-wide" placeholder="Curate a message or command..." type="text"/>
+<div class="flex items-center gap-3 pr-3">
+<button class="p-3 rounded-2xl text-on-surface-variant/40 hover:bg-white/5 transition-all">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<button id="sendBtn" class="p-3.5 rounded-2xl bg-primary text-on-primary shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Subtle Metadata -->
+<div class="mt-6 text-center">
+<p class="text-[10px] text-on-surface-variant/20 font-mono tracking-[0.3em] uppercase">Powered by Friday Obsidian • Neural Engine v9.0.2</p>
+</div>
+</div>
+</main>
+<!-- Visual Accents (Glows) -->
+<div class="fixed top-[-15%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none z-0"></div>
+<div class="fixed bottom-[-15%] left-[-5%] w-[700px] h-[700px] bg-primary-dim/5 rounded-full blur-[180px] pointer-events-none z-0"></div>
+<div class="fixed top-[40%] left-[20%] w-[400px] h-[400px] bg-secondary/3 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+<div id="settingsOverlay" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[90]"></div>
+
+<div id="settingsPanel" class="hidden fixed top-0 right-0 h-full w-full max-w-[440px] bg-surface-container-low/95 backdrop-blur-xl border-l border-white/5 z-[100] flex flex-col overflow-hidden">
+  <div class="flex items-center justify-between px-8 py-6 border-b border-white/5">
+    <h2 class="text-lg font-semibold text-on-surface">Settings</h2>
+    <button onclick="window.fridayToggleSettings()" class="p-2 rounded-xl hover:bg-white/5 transition-colors">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-8 py-6 space-y-8">
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary" style="font-size:20px;">palette</span>
+        <span class="text-sm font-medium text-on-surface">Theme</span>
+      </div>
+      <div id="themeSelect"></div>
+    </div>
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary" style="font-size:20px;">dns</span>
+        <span class="text-sm font-medium text-on-surface">Providers</span>
+      </div>
+      <div id="settingsProviders"></div>
+    </div>
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary" style="font-size:20px;">hub</span>
+        <span class="text-sm font-medium text-on-surface">MCP Servers</span>
+      </div>
+      <div id="settingsMCP"></div>
+    </div>
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary" style="font-size:20px;">build</span>
+        <span class="text-sm font-medium text-on-surface">Tools</span>
+      </div>
+      <div id="settingsTools"></div>
+    </div>
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary" style="font-size:20px;">psychology</span>
+        <span class="text-sm font-medium text-on-surface">Memory</span>
+      </div>
+      <div id="settingsMemory"></div>
+      <button onclick="window.fridayClearMemory()" class="mt-3 text-xs text-error hover:text-error/80 transition-colors">Clear All Memory</button>
+    </div>
+  </div>
+</div>
+
+<template id="tplUserBubble">
+  <div class="flex flex-col items-end space-y-2 mb-8">
+    <div class="max-w-[85%] md:max-w-[65%] p-6 rounded-[28px] rounded-tr-[4px] user-glass border border-primary/20 text-on-surface">
+      <div class="text-sm font-light leading-relaxed">{CONTENT}</div>
+    </div>
+    <div class="text-[10px] text-on-surface-variant/30 font-mono px-2">{TIME}</div>
+  </div>
+</template>
+
+<template id="tplFridayBubble">
+  <div class="flex gap-5 items-start mb-8 max-w-[90%] md:max-w-[85%]">
+    <div class="relative flex-shrink-0">
+      <div class="w-10 h-10 rounded-2xl bg-surface-container-high flex items-center justify-center border border-white/10">
+        <span class="text-primary font-bold text-sm">F</span>
+      </div>
+      <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-primary rounded-full border-2 border-surface"></div>
+    </div>
+    <div class="flex-1">
+      <div class="glass p-7 rounded-[28px] rounded-tl-[4px] border border-white/10">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-mono rounded-md border border-primary/20">{PROVIDER}</span>
+        </div>
+        <div class="text-sm font-light leading-relaxed text-on-surface/90">{CONTENT}</div>
+      </div>
+      <div class="text-[10px] text-on-surface-variant/30 font-mono mt-2 px-2">{TIME}</div>
+    </div>
+  </div>
+</template>
+
+<script src="/static/chat-engine.js"></script>
+</body></html>
