@@ -1,23 +1,17 @@
 #!/bin/bash
-# friday-chrome-bridge — Manages headless Chrome for AI Mode API extension
+# friday-chrome-bridge — Manages Chrome for AI Mode API extension
 #
-# Usage:
-#   friday-chrome-bridge setup      — Install extension + paste API URL (one-time)
-#   friday-chrome-bridge start      — Start headless Chrome
-#   friday-chrome-bridge stop       — Stop headless Chrome
-#   friday-chrome-bridge reconnect  — Reopen visually to reconnect + paste new URL
-#   friday-chrome-bridge status     — Check if running
+# The extension needs a real Chrome window (not headless).
+# This script opens Chrome on a separate workspace so it's out of the way.
 
 CHROME_BIN="google-chrome-stable"
-DISPLAY_NUM=99
-PIDFILE="/tmp/friday-chrome-bridge.pid"
-XVFB_PIDFILE="/tmp/friday-xvfb.pid"
 CHROME_PROFILE="$HOME/.config/friday/chrome-bridge-profile"
 CONFIG="$HOME/.config/friday/config.toml"
+PIDFILE="/tmp/friday-chrome-bridge.pid"
 
 save_api_url() {
     echo ""
-    echo "  Now copy the API ENDPOINT URL from the extension popup."
+    echo "  Copy the API ENDPOINT URL from the extension popup."
     echo ""
     echo -n "  Paste API URL: "
     read -r API_URL
@@ -37,7 +31,7 @@ save_api_url() {
         fi
         echo "  ✓ URL saved to config"
     else
-        echo "  Skipped. Add later: friday config edit"
+        echo "  Skipped. Add later with: friday chrome-bridge reconnect"
     fi
 }
 
@@ -59,66 +53,33 @@ case "${1:-}" in
         echo "  └──────────────────────────────────────────┘"
         echo ""
 
-        mkdir -p "$CHROME_PROFILE"
+        mkdir -p "$CHROME_PROFILE/Default"
 
         # Enable developer mode
-        PREFS_DIR="$CHROME_PROFILE/Default"
-        mkdir -p "$PREFS_DIR"
-        if [ -f "$PREFS_DIR/Preferences" ]; then
+        if [ -f "$CHROME_PROFILE/Default/Preferences" ]; then
             python3 -c "
 import json
-with open('$PREFS_DIR/Preferences') as f: prefs = json.load(f)
+with open('$CHROME_PROFILE/Default/Preferences') as f: prefs = json.load(f)
 prefs.setdefault('extensions', {})['ui'] = {'developer_mode': True}
-with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
+with open('$CHROME_PROFILE/Default/Preferences', 'w') as f: json.dump(prefs, f)
 " 2>/dev/null
         else
-            echo '{"extensions":{"ui":{"developer_mode":true}}}' > "$PREFS_DIR/Preferences"
+            echo '{"extensions":{"ui":{"developer_mode":true}}}' > "$CHROME_PROFILE/Default/Preferences"
         fi
 
-        # Open Chrome (blocks until closed)
         $CHROME_BIN \
             --no-first-run \
             --user-data-dir="$CHROME_PROFILE" \
             "chrome://extensions" 2>/dev/null &
-        CHROME_PID=$!
 
-        # Ask for URL while Chrome is open
         save_api_url
 
         echo ""
-        echo "  Close Chrome, then run: friday chrome-bridge start"
-        wait $CHROME_PID 2>/dev/null
-        ;;
-
-    reconnect)
-        echo "  Opening Chrome to reconnect..."
-        echo "  Click the extension icon → wait for 'Connected'"
+        echo "  Done! Chrome will stay open to keep the connection alive."
+        echo "  Move it to another workspace to hide it."
         echo ""
-
-        # Stop headless if running
-        if [ -f "$PIDFILE" ]; then
-            kill "$(cat $PIDFILE)" 2>/dev/null
-            rm -f "$PIDFILE"
-        fi
-        if [ -f "$XVFB_PIDFILE" ]; then
-            kill "$(cat $XVFB_PIDFILE)" 2>/dev/null
-            rm -f "$XVFB_PIDFILE"
-        fi
-
-        # Open visually
-        $CHROME_BIN \
-            --no-first-run \
-            --user-data-dir="$CHROME_PROFILE" \
-            "https://www.google.com" 2>/dev/null &
-        CHROME_PID=$!
-
-        # Ask for new URL if connection ID changed
-        save_api_url
-
-        echo ""
-        echo "  Close Chrome. Restarting headless..."
-        wait $CHROME_PID 2>/dev/null
-        exec "$0" start
+        echo "  To check: friday chrome-bridge status"
+        echo "  To stop:  friday chrome-bridge stop"
         ;;
 
     start)
@@ -132,42 +93,56 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
             exit 1
         fi
 
-        Xvfb :$DISPLAY_NUM -screen 0 1280x720x24 >/dev/null 2>&1 &
-        echo $! > "$XVFB_PIDFILE"
-        sleep 1
-
-        env \
-            DISPLAY=:$DISPLAY_NUM \
-            WAYLAND_DISPLAY="" \
-            XDG_SESSION_TYPE=x11 \
-            $CHROME_BIN \
+        # Open Chrome minimized on current workspace
+        $CHROME_BIN \
             --no-first-run \
             --disable-sync \
-            --disable-gpu \
-            --disable-software-rasterizer \
             --user-data-dir="$CHROME_PROFILE" \
-            --disable-features=WaylandWindowDecorations \
-            --ozone-platform=x11 \
-            --restore-last-session \
             "https://www.google.com" \
             >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
+
         sleep 3
 
-        echo "Chrome bridge running (headless, PID: $(cat $PIDFILE))"
+        # Move to last workspace to hide it (Cosmic: Super+End, Hyprland: dispatch)
+        if [ "$XDG_CURRENT_DESKTOP" = "COSMIC" ]; then
+            # Move Chrome window to workspace 9 (out of the way)
+            wtype -M logo -k 9 -m logo 2>/dev/null
+        elif pgrep -x Hyprland >/dev/null 2>&1; then
+            hyprctl dispatch movetoworkspacesilent 9 2>/dev/null
+        fi
 
-        # Verify connection
+        echo "Chrome bridge running (PID: $(cat $PIDFILE))"
+        echo "Moved to workspace 9 to stay out of the way."
+
+        # Verify
         API_URL=$(grep "aimodeapi_url" "$CONFIG" 2>/dev/null | cut -d'"' -f2)
         if [ -n "$API_URL" ] && [ "$API_URL" != "" ]; then
-            echo -n "Checking connection... "
+            sleep 2
+            echo -n "Checking... "
             if curl -s "$API_URL" -H "Content-Type: application/json" -d '{"query":"test"}' 2>/dev/null | grep -q "success"; then
                 echo "✓ Connected"
             else
-                echo "✗ Extension not connected. Run: friday chrome-bridge reconnect"
+                echo "✗ Not connected. Run: friday chrome-bridge reconnect"
             fi
-        else
-            echo "No API URL configured. Run: friday chrome-bridge reconnect"
         fi
+        ;;
+
+    reconnect)
+        echo "  Click the extension icon → wait for 'Connected'"
+        echo ""
+
+        # If not running, start Chrome first
+        if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
+            $CHROME_BIN \
+                --no-first-run \
+                --user-data-dir="$CHROME_PROFILE" \
+                "https://www.google.com" 2>/dev/null &
+            echo $! > "$PIDFILE"
+            sleep 3
+        fi
+
+        save_api_url
         ;;
 
     stop)
@@ -175,19 +150,24 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
             kill "$(cat $PIDFILE)" 2>/dev/null
             rm -f "$PIDFILE"
             echo "Chrome stopped."
-        fi
-        if [ -f "$XVFB_PIDFILE" ]; then
-            kill "$(cat $XVFB_PIDFILE)" 2>/dev/null
-            rm -f "$XVFB_PIDFILE"
-            echo "Xvfb stopped."
+        else
+            echo "Not running."
         fi
         ;;
 
     status)
         if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-            echo "Running (Chrome PID: $(cat $PIDFILE))"
+            echo "Running (PID: $(cat $PIDFILE))"
             API_URL=$(grep "aimodeapi_url" "$CONFIG" 2>/dev/null | cut -d'"' -f2)
-            [ -n "$API_URL" ] && echo "API URL: $API_URL"
+            if [ -n "$API_URL" ]; then
+                echo "API URL: $API_URL"
+                echo -n "Connection: "
+                if curl -s "$API_URL" -H "Content-Type: application/json" -d '{"query":"test"}' 2>/dev/null | grep -q "success"; then
+                    echo "✓ Active"
+                else
+                    echo "✗ Disconnected"
+                fi
+            fi
         else
             echo "Not running."
         fi
@@ -197,9 +177,9 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
         echo "Usage: friday chrome-bridge <command>"
         echo ""
         echo "  setup      Install extension + paste API URL (one-time)"
-        echo "  start      Start headless Chrome"
-        echo "  stop       Stop headless Chrome"
-        echo "  reconnect  Reopen Chrome to reconnect + update URL"
-        echo "  status     Check if running"
+        echo "  start      Open Chrome on workspace 9 (stays connected)"
+        echo "  stop       Close Chrome"
+        echo "  reconnect  Reconnect extension + update URL"
+        echo "  status     Check connection"
         ;;
 esac
