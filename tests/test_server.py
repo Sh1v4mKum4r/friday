@@ -378,8 +378,9 @@ class TestReloadEndpoint:
 
             data = response.json()
             assert data["reloaded"] == 2
-            assert "tool_alpha" in data["tools"]
-            assert "tool_beta" in data["tools"]
+            tool_names = [t if isinstance(t, str) else t["name"] for t in data["tools"]]
+            assert "tool_alpha" in tool_names
+            assert "tool_beta" in tool_names
 
 
 # ---------------------------------------------------------------------------

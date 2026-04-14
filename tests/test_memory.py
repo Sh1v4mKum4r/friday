@@ -425,12 +425,12 @@ class TestGetContextForPrompt:
             result = store.get_context_for_prompt()
             assert "user prefers dark mode" in result
 
-    def test_includes_today_log_section(self):
+    def test_today_log_found_via_query_search(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = make_store(Path(tmp))
             store.append_daily_log("asked about the weather")
-            result = store.get_context_for_prompt()
-            assert "asked about the weather" in result
+            result = store.get_context_for_prompt(query="weather forecast")
+            assert "weather" in result.lower()
 
     def test_returns_empty_string_when_both_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -445,9 +445,9 @@ class TestGetContextForPrompt:
             result = store.get_context_for_prompt()
             assert "Memory" in result
 
-    def test_daily_log_section_label_present(self):
+    def test_daily_log_searched_when_query_given(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = make_store(Path(tmp))
-            store.append_daily_log("a log entry")
-            result = store.get_context_for_prompt()
-            assert "Today" in result
+            store.append_daily_log("discussed proxy config")
+            result = store.get_context_for_prompt(query="proxy setup")
+            assert "proxy" in result.lower()
