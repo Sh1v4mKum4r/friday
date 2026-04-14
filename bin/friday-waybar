@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# friday-waybar — Waybar custom module for Friday status
+# Outputs JSON for waybar's custom module format
+
+API="http://127.0.0.1:65535"
+
+if curl -s "$API/health" > /dev/null 2>&1; then
+    HEALTH=$(curl -s "$API/health")
+    PROVIDERS=$(echo "$HEALTH" | python3 -c "import sys,json; print(', '.join(json.load(sys.stdin)['providers']))" 2>/dev/null)
+    PROVIDER_COUNT=$(echo "$HEALTH" | python3 -c "import sys,json; print(len(json.load(sys.stdin)['providers']))" 2>/dev/null)
+
+    # Check Ollama model
+    MODEL=$(grep "ollama_model " ~/.config/friday/config.toml 2>/dev/null | head -1 | cut -d'"' -f2)
+
+    # Check socket
+    SOCKET="active"
+    [ ! -S "${XDG_RUNTIME_DIR:-/tmp}/friday.sock" ] && SOCKET="inactive"
+
+    TOOLTIP="Friday AI — Online\nProviders: $PROVIDERS\nModel: $MODEL\nSocket: $SOCKET"
+
+    echo "{\"text\": \"  $PROVIDER_COUNT\", \"tooltip\": \"$TOOLTIP\", \"class\": \"online\", \"alt\": \"online\"}"
+else
+    echo "{\"text\": \"  off\", \"tooltip\": \"Friday AI — Offline\\nStart with: friday start --daemon\", \"class\": \"offline\", \"alt\": \"offline\"}"
+fi
