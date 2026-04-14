@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Friday</title>
+<style>
+  :root {
+    --bg: #1a1b26;
+    --surface: #24283b;
+    --surface2: #2f3347;
+    --text: #c0caf5;
+    --text-dim: #565f89;
+    --accent: #7aa2f7;
+    --accent-dim: #3d59a1;
+    --user-bg: #292e42;
+    --friday-bg: #1e2030;
+    --border: #3b4261;
+    --danger: #f7768e;
+    --success: #9ece6a;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+
+  .header .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  .status-dot.offline { background: var(--danger); }
+
+  /* Chat area */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  .message {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user {
+    align-self: flex-end;
+    background: var(--user-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .message.friday {
+    align-self: flex-start;
+    background: var(--friday-bg);
+    border: 1px solid var(--border);
+  }
+
+  .message .provider {
+    font-size: 10px;
+    color: var(--accent-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .message pre {
+    background: var(--bg);
+    padding: 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .message code {
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  .thinking {
+    align-self: flex-start;
+    padding: 10px 14px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .thinking .dots {
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 12px 20px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .input-row textarea {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    min-height: 42px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+
+  .input-row textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .input-row textarea::placeholder {
+    color: var(--text-dim);
+  }
+
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    color: var(--bg);
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Scrollbar */
+  .chat::-webkit-scrollbar { width: 6px; }
+  .chat::-webkit-scrollbar-track { background: transparent; }
+  .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: var(--text-dim);
+    gap: 12px;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .empty-state .logo {
+    font-size: 48px;
+    color: var(--accent);
+    opacity: 0.5;
+  }
+
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* Keyboard hints */
+  .hints {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    padding: 4px 0;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  kbd {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11px;
+    font-family: inherit;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>FRIDAY</h1>
+  <div class="status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">connecting...</span>
+  </div>
+</div>
+
+<div class="chat" id="chat">
+  <div class="empty-state" id="emptyState">
+    <div class="logo">F</div>
+    <p>Ready to assist.<br>Type a message or press <kbd>Enter</kbd> to start.</p>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-row">
+    <textarea id="input" placeholder="Ask Friday anything..." rows="1" autofocus></textarea>
+    <button class="send-btn" id="sendBtn" title="Send (Enter)">&#8593;</button>
+  </div>
+  <div class="hints">
+    <span><kbd>Enter</kbd> send</span>
+    <span><kbd>Shift+Enter</kbd> new line</span>
+    <span><kbd>Ctrl+L</kbd> clear chat</span>
+  </div>
+</div>
+
+<script>
+const API = `http://${location.hostname}:65535`;
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const emptyState = document.getElementById('emptyState');
+
+let sending = false;
+
+// Auto-resize textarea
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+// Enter to send, Shift+Enter for newline
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+
+// Ctrl+L to clear
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 'l') {
+    e.preventDefault();
+    chat.innerHTML = '';
+    emptyState.style.display = 'flex';
+    chat.appendChild(emptyState);
+  }
+});
+
+sendBtn.addEventListener('click', send);
+
+// Check health on load
+checkHealth();
+setInterval(checkHealth, 30000);
+
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API}/health`);
+    const data = await res.json();
+    statusDot.className = 'status-dot';
+    statusText.textContent = `online · ${data.providers.length} providers`;
+  } catch {
+    statusDot.className = 'status-dot offline';
+    statusText.textContent = 'offline';
+  }
+}
+
+async function send() {
+  const text = input.value.trim();
+  if (!text || sending) return;
+
+  // Hide empty state
+  if (emptyState.parentNode) emptyState.remove();
+
+  // Add user message
+  addMessage(text, 'user');
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Show thinking indicator
+  const thinkingEl = document.createElement('div');
+  thinkingEl.className = 'thinking';
+  thinkingEl.innerHTML = '<span class="dots">Friday is thinking...</span>';
+  chat.appendChild(thinkingEl);
+  scrollToBottom();
+
+  sending = true;
+  sendBtn.disabled = true;
+
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+
+    const data = await res.json();
+    thinkingEl.remove();
+    addMessage(data.response, 'friday', data.provider);
+  } catch (err) {
+    thinkingEl.remove();
+    addMessage(`Error: ${err.message}`, 'friday', 'error');
+  } finally {
+    sending = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function addMessage(text, role, provider = '') {
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  let html = '';
+  if (provider) {
+    html += `<div class="provider">${provider}</div>`;
+  }
+
+  // Basic markdown rendering
+  html += formatMarkdown(text);
+
+  div.innerHTML = html;
+  chat.appendChild(div);
+  scrollToBottom();
+}
+
+function formatMarkdown(text) {
+  // Code blocks
+  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Line breaks
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+function scrollToBottom() {
+  requestAnimationFrame(() => {
+    chat.scrollTop = chat.scrollHeight;
+  });
+}
+</script>
+
+</body>
+</html>

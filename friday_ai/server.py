@@ -14,6 +14,9 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .agent import Agent
 from .config import (
@@ -81,6 +84,14 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         A fully configured application instance with all endpoints registered.
     """
     app = FastAPI(title="Friday AI", version="0.1.0")
+
+    # Allow browser access from any origin (local use only)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # ------------------------------------------------------------------ #
     # Resolve directories                                                  #
@@ -276,6 +287,19 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         await mcp_manager.disconnect_all()
         connected = await mcp_manager.connect_all()
         return {"connected": connected}
+
+    # ------------------------------------------------------------------ #
+    # Web UI                                                                #
+    # ------------------------------------------------------------------ #
+
+    static_dir = Path(__file__).parent / "static"
+
+    @app.get("/")
+    async def ui_root():
+        """Serve the Friday chat UI."""
+        return FileResponse(static_dir / "index.html")
+
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     return app
 

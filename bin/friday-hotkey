@@ -1,46 +1,15 @@
 #!/bin/bash
-# friday-hotkey — Hotkey handler for Friday
-# Triggered by Super+F keybind. Opens a prompt, sends to Friday daemon.
+# friday-hotkey — Open the Friday chat UI
+# Triggered by Super+F keybind
 
-SOCKET="${XDG_RUNTIME_DIR:-/tmp}/friday.sock"
+PORT=65535
 
-if [ ! -S "$SOCKET" ]; then
-    notify-send "Friday" "Daemon not running. Start with: friday --daemon"
-    exit 1
+# Check if backend is running
+if ! curl -s "http://127.0.0.1:$PORT/health" > /dev/null 2>&1; then
+    notify-send "Friday" "Backend not running. Starting..."
+    /home/sh4d0w/Projects/friday/start.sh --daemon &
+    sleep 5
 fi
 
-# Open rofi/wofi in dmenu mode (compatible with rofi 1.x and 2.x)
-if command -v rofi &>/dev/null; then
-    PROMPT=$(echo "" | rofi -dmenu -p "Friday >" -l 0)
-elif command -v wofi &>/dev/null; then
-    PROMPT=$(wofi --dmenu --prompt "Friday" --lines 0)
-else
-    notify-send "Friday" "No launcher found. Install rofi or wofi."
-    exit 1
-fi
-
-[ -z "$PROMPT" ] && exit 0
-
-# Show "thinking" notification
-notify-send -t 30000 "Friday" "Thinking..."
-
-# Send to daemon, get response, show as notification
-python3 -c "
-import socket, os, sys, subprocess
-sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-sock.connect('$SOCKET')
-sock.sendall(sys.argv[1].encode() + b'\n')
-sock.settimeout(120)
-data = b''
-while True:
-    try:
-        chunk = sock.recv(4096)
-        if not chunk:
-            break
-        data += chunk
-    except socket.timeout:
-        break
-sock.close()
-resp = data.decode().strip() or 'No response.'
-subprocess.run(['notify-send', '-t', '15000', 'Friday', resp])
-" "$PROMPT" &
+# Open the chat UI in the default browser
+xdg-open "http://127.0.0.1:$PORT" 2>/dev/null
