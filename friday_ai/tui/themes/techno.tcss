@@ -1,85 +1,72 @@
 /* Techno — "Friday OS" — green terminal hacker aesthetic */
 
-/* ── Color tokens ───────────────────────────────────────────
-   bg:             #0a0a0a
-   surface:        #111111
-   surface-high:   #1a1a1a
-   surface-active: #222222
-   accent:         #4ae176
-   accent-dim:     #22c55e
-   text:           #e0ffe0
-   text-dim:       #6a946a
-   success:        #4ae176
-   error:          #ff4444
-   darker-bg:      #050505
-   ──────────────────────────────────────────────────────── */
+Screen {
+    background: #0a0a0a;
+    color: #e0ffe0;
+    layout: grid;
+    grid-size: 1;
+    grid-rows: 1fr auto auto;
+}
 
-/* Screen */
-Screen { background: #0a0a0a; color: #e0ffe0; }
+#messages {
+    background: #0a0a0a;
+    scrollbar-color: #222222;
+    scrollbar-color-hover: #4ae176;
+    scrollbar-color-active: #4ae176;
+    scrollbar-background: #111111;
+    min-height: 3;
+}
 
-/* Surface hierarchy */
-#chat-area { background: #111111; }
-#messages { background: #0a0a0a; overflow-y: auto; }
-
-/* Messages */
-.msg-user { background: #111111; color: #e0ffe0; margin: 1 2 0 12; padding: 1 2; }
-.msg-assistant { background: #1a1a1a; color: #e0ffe0; margin: 1 12 0 2; padding: 1 2; border-left: thick #4ae176; }
+.msg-user { background: #111111; color: #e0ffe0; margin: 1 2 0 20; padding: 1 2; }
+.msg-assistant { background: #1a1a1a; color: #e0ffe0; margin: 1 20 0 2; padding: 1 2; border-left: thick #4ae176; }
 .msg-user .timestamp { color: #6a946a; }
 .msg-assistant .timestamp { color: #6a946a; }
-.provider-tag { background: #22c55e; color: #e0ffe0; padding: 0 1; }
+.provider-tag { background: #22c55e; color: #0a0a0a; padding: 0 1; }
 .latency-tag { color: #6a946a; }
 
-/* Input */
-#input-area { background: #0a0a0a; dock: bottom; height: auto; max-height: 8; padding: 0 1; }
-#chat-input { background: #050505; color: #e0ffe0; border: none; padding: 0 1; }
-#chat-input:focus { border-bottom: tall #4ae176; }
-.input-placeholder { color: #6a946a; }
-
-/* Mode bar */
-#mode-bar { background: #0a0a0a; height: 1; padding: 0 1; }
+ModeBar { height: 1; background: #111111; padding: 0 2; }
+#mode-bar { height: 1; background: #111111; }
 .mode-active { color: #4ae176; text-style: bold; }
 .mode-inactive { color: #6a946a; }
 
-/* Sidebar */
-#sidebar { background: #0a0a0a; width: 30; dock: left; border-right: tall #1a1a1a; }
+InputBar { height: auto; max-height: 6; background: #0a0a0a; padding: 0 1; }
+#input-area { height: auto; max-height: 6; background: #0a0a0a; }
+#chat-input { background: #050505; color: #e0ffe0; border: tall #222222; padding: 0 2; margin: 0 1; }
+#chat-input:focus { border: tall #4ae176; }
+#thinking-label { color: #4ae176; text-style: italic; padding: 0 2; }
+
+#sidebar { background: #0a0a0a; width: 30; dock: left; border-right: tall #1a1a1a; layer: overlay; }
 #sidebar-title { color: #6a946a; text-style: bold; padding: 1 1; }
 .session-item { padding: 0 1; height: 1; }
 .session-item:hover { background: #1a1a1a; }
 .session-item.-selected { background: #222222; color: #4ae176; }
 .session-group-label { color: #6a946a; text-style: bold; padding: 1 1 0 1; }
 
-/* Telemetry */
-#telemetry { background: #0a0a0a; width: 30; dock: right; border-left: tall #1a1a1a; }
+#telemetry { background: #0a0a0a; width: 30; dock: right; border-left: tall #1a1a1a; layer: overlay; }
 #telemetry-title { color: #6a946a; text-style: bold; padding: 1 1; }
 .telemetry-label { color: #6a946a; }
 .telemetry-value { color: #e0ffe0; }
 .status-online { color: #4ae176; }
 .status-offline { color: #ff4444; }
-.status-connecting { color: #4ae176; }
+.status-connecting { color: #22c55e; }
 
-/* Settings */
 #settings-screen { background: #0a0a0a; }
 .settings-tab-active { background: #1a1a1a; color: #4ae176; text-style: bold; padding: 0 2; }
 .settings-tab-inactive { background: #0a0a0a; color: #6a946a; padding: 0 2; }
 .settings-label { color: #e0ffe0; }
 .settings-value { color: #4ae176; }
+.settings-field { height: 1; padding: 0 1; }
 .settings-field.-selected { background: #1a1a1a; }
 
-/* Welcome */
 #welcome { background: #0a0a0a; align: center middle; }
 #welcome-logo { color: #4ae176; text-style: bold; }
-#welcome-title { color: #e0ffe0; }
+#welcome-title { color: #e0ffe0; text-align: center; }
 .quick-action { background: #1a1a1a; padding: 1 2; margin: 1; width: 24; height: 5; }
 .quick-action:hover { background: #222222; border: tall #4ae176; }
 
-/* Code blocks */
 .code-block { background: #050505; padding: 1; margin: 1 0; }
 .code-header { background: #1a1a1a; color: #6a946a; padding: 0 1; }
 .code-copy-hint { color: #22c55e; }
 
-/* General */
 .hidden { display: none; }
-.thinking-indicator { color: #4ae176; }
 Toast { background: #1a1a1a; color: #e0ffe0; }
-Header { background: #111111; color: #e0ffe0; }
-Footer { background: #111111; color: #6a946a; }

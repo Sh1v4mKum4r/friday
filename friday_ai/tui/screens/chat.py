@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import VerticalScroll
 from textual.screen import Screen
 
 from friday_ai.tui.widgets.input_bar import InputBar
@@ -28,13 +28,11 @@ class ChatScreen(Screen):
     ]
 
     def compose(self) -> ComposeResult:
-        with Horizontal(id="main-layout"):
-            yield Sidebar(classes="hidden")
-            with Vertical(id="chat-area"):
-                yield VerticalScroll(id="messages")
-                yield ModeBar()
-                yield InputBar()
-            yield TelemetryPanel(classes="hidden")
+        yield Sidebar(classes="hidden")
+        yield VerticalScroll(id="messages")
+        yield ModeBar()
+        yield InputBar()
+        yield TelemetryPanel(classes="hidden")
 
     def add_message(
         self,

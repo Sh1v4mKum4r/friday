@@ -1,55 +1,48 @@
 /* Neural Ether — "The Synthetic Intelligence Core" — cyan HUD */
 
-/* ── Color tokens ───────────────────────────────────────────
-   bg:             #0e0e14
-   surface:        #131319
-   surface-high:   #1b1b21
-   surface-active: #25252e
-   accent:         #69daff
-   accent-dim:     #00cffc
-   text:           #e0f0ff
-   text-dim:       #6a8a94
-   success:        #4ae176
-   error:          #ff4466
-   darker-bg:      #0a0a10
-   ──────────────────────────────────────────────────────── */
+Screen {
+    background: #0e0e14;
+    color: #e0f0ff;
+    layout: grid;
+    grid-size: 1;
+    grid-rows: 1fr auto auto;
+}
 
-/* Screen */
-Screen { background: #0e0e14; color: #e0f0ff; }
+#messages {
+    background: #0e0e14;
+    scrollbar-color: #25252e;
+    scrollbar-color-hover: #69daff;
+    scrollbar-color-active: #69daff;
+    scrollbar-background: #131319;
+    min-height: 3;
+}
 
-/* Surface hierarchy */
-#chat-area { background: #131319; }
-#messages { background: #0e0e14; overflow-y: auto; }
-
-/* Messages */
-.msg-user { background: #131319; color: #e0f0ff; margin: 1 2 0 12; padding: 1 2; }
-.msg-assistant { background: #1b1b21; color: #e0f0ff; margin: 1 12 0 2; padding: 1 2; border-left: thick #69daff; }
+.msg-user { background: #131319; color: #e0f0ff; margin: 1 2 0 20; padding: 1 2; }
+.msg-assistant { background: #1b1b21; color: #e0f0ff; margin: 1 20 0 2; padding: 1 2; border-left: thick #69daff; }
 .msg-user .timestamp { color: #6a8a94; }
 .msg-assistant .timestamp { color: #6a8a94; }
-.provider-tag { background: #00cffc; color: #e0f0ff; padding: 0 1; }
+.provider-tag { background: #00cffc; color: #0e0e14; padding: 0 1; }
 .latency-tag { color: #6a8a94; }
 
-/* Input */
-#input-area { background: #0e0e14; dock: bottom; height: auto; max-height: 8; padding: 0 1; }
-#chat-input { background: #0a0a10; color: #e0f0ff; border: none; padding: 0 1; }
-#chat-input:focus { border-bottom: tall #69daff; }
-.input-placeholder { color: #6a8a94; }
-
-/* Mode bar */
-#mode-bar { background: #0e0e14; height: 1; padding: 0 1; }
+ModeBar { height: 1; background: #131319; padding: 0 2; }
+#mode-bar { height: 1; background: #131319; }
 .mode-active { color: #69daff; text-style: bold; }
 .mode-inactive { color: #6a8a94; }
 
-/* Sidebar */
-#sidebar { background: #0e0e14; width: 30; dock: left; border-right: tall #1b1b21; }
+InputBar { height: auto; max-height: 6; background: #0e0e14; padding: 0 1; }
+#input-area { height: auto; max-height: 6; background: #0e0e14; }
+#chat-input { background: #0a0a10; color: #e0f0ff; border: tall #25252e; padding: 0 2; margin: 0 1; }
+#chat-input:focus { border: tall #69daff; }
+#thinking-label { color: #69daff; text-style: italic; padding: 0 2; }
+
+#sidebar { background: #0e0e14; width: 30; dock: left; border-right: tall #1b1b21; layer: overlay; }
 #sidebar-title { color: #6a8a94; text-style: bold; padding: 1 1; }
 .session-item { padding: 0 1; height: 1; }
 .session-item:hover { background: #1b1b21; }
 .session-item.-selected { background: #25252e; color: #69daff; }
 .session-group-label { color: #6a8a94; text-style: bold; padding: 1 1 0 1; }
 
-/* Telemetry */
-#telemetry { background: #0e0e14; width: 30; dock: right; border-left: tall #1b1b21; }
+#telemetry { background: #0e0e14; width: 30; dock: right; border-left: tall #1b1b21; layer: overlay; }
 #telemetry-title { color: #6a8a94; text-style: bold; padding: 1 1; }
 .telemetry-label { color: #6a8a94; }
 .telemetry-value { color: #e0f0ff; }
@@ -57,29 +50,23 @@ Screen { background: #0e0e14; color: #e0f0ff; }
 .status-offline { color: #ff4466; }
 .status-connecting { color: #69daff; }
 
-/* Settings */
 #settings-screen { background: #0e0e14; }
 .settings-tab-active { background: #1b1b21; color: #69daff; text-style: bold; padding: 0 2; }
 .settings-tab-inactive { background: #0e0e14; color: #6a8a94; padding: 0 2; }
 .settings-label { color: #e0f0ff; }
 .settings-value { color: #69daff; }
+.settings-field { height: 1; padding: 0 1; }
 .settings-field.-selected { background: #1b1b21; }
 
-/* Welcome */
 #welcome { background: #0e0e14; align: center middle; }
 #welcome-logo { color: #69daff; text-style: bold; }
-#welcome-title { color: #e0f0ff; }
+#welcome-title { color: #e0f0ff; text-align: center; }
 .quick-action { background: #1b1b21; padding: 1 2; margin: 1; width: 24; height: 5; }
 .quick-action:hover { background: #25252e; border: tall #69daff; }
 
-/* Code blocks */
 .code-block { background: #0a0a10; padding: 1; margin: 1 0; }
 .code-header { background: #1b1b21; color: #6a8a94; padding: 0 1; }
 .code-copy-hint { color: #00cffc; }
 
-/* General */
 .hidden { display: none; }
-.thinking-indicator { color: #69daff; }
 Toast { background: #1b1b21; color: #e0f0ff; }
-Header { background: #131319; color: #e0f0ff; }
-Footer { background: #131319; color: #6a8a94; }
