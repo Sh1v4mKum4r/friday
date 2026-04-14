@@ -59,6 +59,7 @@ MODES:
   friday mode               Show current provider mode
   friday mode fallback      Ollama first, cloud if fails
   friday mode race          Cloud providers race, fastest wins
+  friday mode google        Open Google AI mode in browser for the query
 
 KEYBINDS:
   Super+F                   Toggle floating window
@@ -166,15 +167,22 @@ case "${1:-}" in
                 echo "Mode: race (cloud providers race, fastest wins)"
                 echo "Restart Friday to apply."
                 ;;
+            google)
+                sed -i 's/provider_mode = ".*"/provider_mode = "google"/' "$CONFIG_DIR/config.toml"
+                echo "Mode: google (opens Google AI mode in browser)"
+                echo "Restart Friday to apply."
+                ;;
             *)
                 echo "Current mode: $CURRENT"
                 echo ""
                 echo "Available modes:"
                 echo "  fallback  — Ollama first, cloud if fails (local-first, offline-capable)"
                 echo "  race      — Cloud providers race, fastest wins (needs internet)"
+                echo "  google    — Opens Google AI mode in browser for the query"
                 echo ""
                 echo "Use: friday mode fallback"
                 echo "     friday mode race"
+                echo "     friday mode google"
                 ;;
         esac
         ;;
@@ -684,7 +692,7 @@ print(f'\n  Use: friday history load <number>')
 # eval "$(friday completions)"
 
 _friday_completions() {
-    local commands="start stop status tui gui send tools mcp models memory history config health doctor backup restore reset update logs completions version help"
+    local commands="start stop status tui gui send tools mcp models memory history config health doctor backup restore reset update logs completions version help mode"
     local mcp_sub="enable disable info restart"
     local tools_sub="enable disable"
     local models_sub="pull rm"
@@ -698,6 +706,7 @@ _friday_completions() {
         case "${COMP_WORDS[1]}" in
             tools) COMPREPLY=($(compgen -W "$tools_sub" -- "${COMP_WORDS[2]}")) ;;
             mcp) COMPREPLY=($(compgen -W "$mcp_sub" -- "${COMP_WORDS[2]}")) ;;
+            mode) COMPREPLY=($(compgen -W "fallback race google" -- "${COMP_WORDS[2]}")) ;;
             models) COMPREPLY=($(compgen -W "$models_sub" -- "${COMP_WORDS[2]}")) ;;
             memory) COMPREPLY=($(compgen -W "$memory_sub" -- "${COMP_WORDS[2]}")) ;;
             history) COMPREPLY=($(compgen -W "$history_sub" -- "${COMP_WORDS[2]}")) ;;

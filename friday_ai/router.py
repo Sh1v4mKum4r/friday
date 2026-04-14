@@ -255,6 +255,11 @@ class ProviderRouter:
         # ------------------------------------------------------------------ #
         # force_provider path                                                  #
         # ------------------------------------------------------------------ #
+        if force_provider is None and self.provider_mode == "google":
+            google = self._find_by_name("google_ai")
+            if google and await google.is_available():
+                return await google.send_message(prompt, tools, history, system_prompt)
+
         if force_provider is None and self.provider_mode == "race":
             intent = classify_intent(prompt)
             return await self.smart_race(

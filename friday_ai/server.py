@@ -29,6 +29,7 @@ from .config import (
 )
 from .providers.claude import ClaudeCLIProvider, ClaudeProvider
 from .providers.gemini import GeminiCLIProvider, GeminiProvider
+from .providers.google_ai import GoogleAIProvider
 from .providers.ollama import OllamaProvider
 from .providers.openai_provider import OpenAIProvider
 from .providers.web_search import WebSearchProvider
@@ -154,6 +155,9 @@ def create_app(config_path: Path | None = None) -> FastAPI:
 
     # 4. Web search as last resort
     providers.append(WebSearchProvider())
+
+    # 5. Google AI mode (opens browser)
+    providers.append(GoogleAIProvider())
 
     # ------------------------------------------------------------------ #
     # Create router, tool loader, and agent                                #
