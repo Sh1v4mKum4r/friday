@@ -8,29 +8,74 @@ This guide covers setting up Friday from scratch on a new Arch Linux machine, an
 
 ### Prerequisites
 
-```bash
-# Arch Linux with yay (AUR helper)
-# Working Wayland compositor (Cosmic or Hyprland)
-# NVIDIA GPU (optional, for fast local LLM)
+```
+- Linux (any distro) with Wayland compositor (Cosmic, Hyprland, Sway, GNOME Wayland)
+- Python 3.11+
+- Rust toolchain (for building friday_core)
+- NVIDIA GPU (optional, for fast local LLM — CPU works too)
 ```
 
 ### Step 1: System Dependencies
 
+Pick your distro:
+
+**Arch Linux / Manjaro:**
 ```bash
-# Core
-sudo pacman -S python git rust cargo curl socat
-
-# Desktop tools
-sudo pacman -S wtype ydotool grim slurp tesseract tesseract-data-eng \
-    brightnessctl playerctl libnotify wl-clipboard
-
-# Optional (from AUR)
+sudo pacman -S python git rust cargo curl socat \
+    wtype ydotool grim slurp tesseract tesseract-data-eng \
+    brightnessctl playerctl libnotify wl-clipboard \
+    python-gobject webkit2gtk-4.1
+# Optional (AUR)
 yay -S googler wlrctl
-
-# Enable ydotool daemon
-sudo systemctl enable --now ydotool
-sudo usermod -aG input $USER  # needs re-login
 ```
+
+**Ubuntu / Debian / Pop!_OS:**
+```bash
+sudo apt update && sudo apt install -y \
+    python3 python3-venv python3-pip git curl socat \
+    build-essential pkg-config libssl-dev \
+    wtype ydotool grim slurp tesseract-ocr tesseract-ocr-eng \
+    brightnessctl playerctl libnotify-bin wl-clipboard \
+    python3-gi gir1.2-webkit2-4.1
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+**Fedora / RHEL:**
+```bash
+sudo dnf install -y \
+    python3 python3-pip git curl socat \
+    rust cargo gcc openssl-devel \
+    wtype ydotool grim slurp tesseract tesseract-langpack-eng \
+    brightnessctl playerctl libnotify wl-clipboard \
+    python3-gobject webkit2gtk4.1
+```
+
+**openSUSE:**
+```bash
+sudo zypper install -y \
+    python3 python3-pip git curl socat \
+    rust cargo gcc libopenssl-devel \
+    wtype ydotool grim slurp tesseract-ocr tesseract-ocr-traineddata-english \
+    brightnessctl playerctl libnotify-tools wl-clipboard \
+    python3-gobject typelib-1_0-WebKit2-4_1
+```
+
+**NixOS (flake):**
+```bash
+# Add to your configuration.nix or use nix-shell:
+nix-shell -p python3 rustc cargo curl socat \
+    wtype ydotool grim slurp tesseract \
+    brightnessctl playerctl libnotify wl-clipboard
+```
+
+**All distros — enable ydotool:**
+```bash
+sudo systemctl enable --now ydotool
+sudo usermod -aG input $USER  # re-login required
+```
+
+**Note:** Some tools are Wayland-only (wtype, grim, slurp, wl-clipboard). If you're on X11, Friday's desktop tools will have limited functionality. The core chat, LLM, and MCP features work on any Linux.
 
 ### Step 2: Install Ollama
 
@@ -124,22 +169,49 @@ for cmd in friday friday-tui friday-send friday-gui friday-chrome-bridge; do
 done
 ```
 
-### Step 9: Cosmic Keybind (Super+F)
+### Step 9: Keybind (Super+F)
 
-The installer auto-adds it, or manually edit:
+Pick your DE:
 
-```
-~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom
-```
-
-Add:
+**Cosmic:**
+Edit `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom`:
 ```ron
 (
-    modifiers: [
-        Super,
-    ],
+    modifiers: [Super],
     key: "f",
 ): Spawn("/home/YOUR_USER/Projects/friday/bin/friday-hotkey"),
+```
+
+**Hyprland:**
+Add to `~/.config/hypr/hyprland.conf`:
+```
+bind = SUPER, F, exec, ~/Projects/friday/bin/friday-hotkey
+```
+
+**Sway:**
+Add to `~/.config/sway/config`:
+```
+bindsym $mod+f exec ~/Projects/friday/bin/friday-hotkey
+```
+
+**GNOME (Wayland):**
+```bash
+# Settings → Keyboard → Shortcuts → Custom
+# Name: Friday AI
+# Command: /home/YOUR_USER/Projects/friday/bin/friday-hotkey
+# Shortcut: Super+F
+```
+
+**KDE Plasma:**
+```bash
+# System Settings → Shortcuts → Custom Shortcuts → Add
+# Trigger: Super+F
+# Action: ~/Projects/friday/bin/friday-hotkey
+```
+
+**Any DE (generic):**
+```bash
+friday-install-keybind  # auto-detects and installs
 ```
 
 ### Step 10: Autostart (Optional)
