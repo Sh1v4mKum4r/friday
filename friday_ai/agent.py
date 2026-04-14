@@ -234,30 +234,63 @@ class Agent:
     # ------------------------------------------------------------------
 
     # Always include these core tools (small, general-purpose)
-    _CORE_TOOLS = {"run_shell", "memory_save", "file_read"}
+    _CORE_TOOLS = {"run_shell", "memory_save"}
 
     # Intent → additional tools to include
     _INTENT_TOOLS: dict[str, set[str]] = {
-        "system": {"de_command", "brightness", "volume", "media",
-                   "clipboard_get", "clipboard_set", "cron", "sysinfo", "notify"},
-        "complex": {"ask_cloud"},  # delegate to cloud
+        "complex": {"ask_cloud"},
         "search": {"web_search"},
-        "chat": {"__none__"},  # special: send NO tools for greetings
+        "chat": {"__none__"},
         "dangerous": set(),
         "unknown": {"ask_cloud", "web_search", "notify"},
+    }
+
+    # Keyword → specific tools (for "system" intent sub-routing)
+    _KEYWORD_TOOLS: dict[str, set[str]] = {
+        "brightness|bright|dim|backlight|screen light": {"brightness"},
+        "volume|mute|unmute|louder|quieter|sound|audio|speaker": {"volume"},
+        "play|pause|next track|previous track|skip|song|music|media": {"media"},
+        "screenshot|screen ?shot|screen ?cap": {"screenshot"},
+        "clipboard|copy|paste|yank": {"clipboard_get", "clipboard_set"},
+        "window|workspace|focus|tile|float|fullscreen|move window|launch": {"de_command"},
+        "cron|schedule|every hour|every day|every morning": {"cron"},
+        "cpu|ram|disk|battery|gpu|temperature|uptime|ip address|system info": {"sysinfo"},
+        "notify|notification|alert|remind": {"notify"},
+        "file|read file|write file|cat |create file": {"file_read", "file_write"},
+        "bluetooth": {"bluetooth"},
+        "mouse|click|cursor|drag": {"mouse"},
+        "keyboard|type|press key|hotkey": {"keyboard"},
+        "screen read|ocr|what.* on screen": {"screen_read"},
     }
 
     def _filter_tools(self, intent: str, message: str) -> list[dict]:
         """Return only the tool schemas relevant to the detected intent.
 
-        This keeps the prompt small and the LLM fast — a 7B model with
-        5 tools responds 3-5x faster than with 19.
+        For 'system' intent, uses keyword matching to pick only the
+        specific tools needed — e.g. "decrease brightness" → only
+        {run_shell, memory_save, brightness} instead of all 12 system tools.
         """
         intent_tools = self._INTENT_TOOLS.get(intent, set())
-        # Special case: chat intent sends NO tools (pure conversation)
+        # Special case: chat intent sends NO tools
         if "__none__" in intent_tools:
             return []
-        allowed = self._CORE_TOOLS | intent_tools
+
+        allowed = set(self._CORE_TOOLS)
+
+        if intent == "system":
+            # Sub-route: match keywords to pick specific tools
+            import re
+            msg_lower = message.lower()
+            matched_any = False
+            for pattern, tools in self._KEYWORD_TOOLS.items():
+                if re.search(pattern, msg_lower):
+                    allowed |= tools
+                    matched_any = True
+            # If nothing matched, fall back to run_shell + notify
+            if not matched_any:
+                allowed.add("notify")
+        else:
+            allowed |= intent_tools
 
         # If message explicitly mentions a tool name, include it
         msg_lower = message.lower()
