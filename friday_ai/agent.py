@@ -309,7 +309,7 @@ class Agent:
         "search": {"web_search"},
         "chat": {"__none__"},
         "dangerous": set(),
-        "unknown": {"ask_cloud", "web_search", "notify"},
+        "unknown": {"ask_cloud", "web_search"},
     }
 
     # Keyword → specific tools (for "system" intent sub-routing)
