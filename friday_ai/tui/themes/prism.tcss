@@ -1,0 +1,85 @@
+/* Prism / Kinetic Stealth — "The Obsidian Blade" — red accents */
+
+/* ── Color tokens ───────────────────────────────────────────
+   bg:             #050505
+   surface:        #121212
+   surface-high:   #201f1f
+   surface-active: #353534
+   accent:         #ff0033
+   accent-dim:     #d73357
+   text:           #f0e0e0
+   text-dim:       #8a7674
+   success:        #4ae176
+   error:          #ff0033
+   darker-bg:      #020202
+   ──────────────────────────────────────────────────────── */
+
+/* Screen */
+Screen { background: #050505; color: #f0e0e0; }
+
+/* Surface hierarchy */
+#chat-area { background: #121212; }
+#messages { background: #050505; overflow-y: auto; }
+
+/* Messages */
+.msg-user { background: #121212; color: #f0e0e0; margin: 1 2 0 12; padding: 1 2; }
+.msg-assistant { background: #201f1f; color: #f0e0e0; margin: 1 12 0 2; padding: 1 2; border-left: thick #ff0033; }
+.msg-user .timestamp { color: #8a7674; }
+.msg-assistant .timestamp { color: #8a7674; }
+.provider-tag { background: #d73357; color: #f0e0e0; padding: 0 1; }
+.latency-tag { color: #8a7674; }
+
+/* Input */
+#input-area { background: #050505; dock: bottom; height: auto; max-height: 8; padding: 0 1; }
+#chat-input { background: #020202; color: #f0e0e0; border: none; padding: 0 1; }
+#chat-input:focus { border-bottom: tall #ff0033; }
+.input-placeholder { color: #8a7674; }
+
+/* Mode bar */
+#mode-bar { background: #050505; height: 1; padding: 0 1; }
+.mode-active { color: #ff0033; text-style: bold; }
+.mode-inactive { color: #8a7674; }
+
+/* Sidebar */
+#sidebar { background: #050505; width: 30; dock: left; border-right: tall #201f1f; }
+#sidebar-title { color: #8a7674; text-style: bold; padding: 1 1; }
+.session-item { padding: 0 1; height: 1; }
+.session-item:hover { background: #201f1f; }
+.session-item.-selected { background: #353534; color: #ff0033; }
+.session-group-label { color: #8a7674; text-style: bold; padding: 1 1 0 1; }
+
+/* Telemetry */
+#telemetry { background: #050505; width: 30; dock: right; border-left: tall #201f1f; }
+#telemetry-title { color: #8a7674; text-style: bold; padding: 1 1; }
+.telemetry-label { color: #8a7674; }
+.telemetry-value { color: #f0e0e0; }
+.status-online { color: #4ae176; }
+.status-offline { color: #ff0033; }
+.status-connecting { color: #ff0033; }
+
+/* Settings */
+#settings-screen { background: #050505; }
+.settings-tab-active { background: #201f1f; color: #ff0033; text-style: bold; padding: 0 2; }
+.settings-tab-inactive { background: #050505; color: #8a7674; padding: 0 2; }
+.settings-label { color: #f0e0e0; }
+.settings-value { color: #ff0033; }
+.settings-field.-selected { background: #201f1f; }
+
+/* Welcome */
+#welcome { background: #050505; align: center middle; }
+#welcome-logo { color: #ff0033; text-style: bold; }
+#welcome-title { color: #f0e0e0; }
+.quick-action { background: #201f1f; padding: 1 2; margin: 1; width: 24; height: 5; }
+.quick-action:hover { background: #353534; border: tall #ff0033; }
+
+/* Code blocks */
+.code-block { background: #020202; padding: 1; margin: 1 0; }
+.code-header { background: #201f1f; color: #8a7674; padding: 0 1; }
+.code-copy-hint { color: #d73357; }
+
+/* General */
+.hidden { display: none; }
+.thinking-indicator { color: #ff0033; }
+Toast { background: #201f1f; color: #f0e0e0; }
+Header { background: #121212; color: #f0e0e0; }
+Footer { background: #121212; color: #8a7674; }

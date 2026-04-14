@@ -1,0 +1,85 @@
+/* Obsidian — "The Digital Curator" — deep purple accents */
+
+/* ── Color tokens ───────────────────────────────────────────
+   bg:             #0e0d15
+   surface:        #13131b
+   surface-high:   #191922
+   surface-active: #252530
+   accent:         #ba9eff
+   accent-dim:     #8455ef
+   text:           #f2effa
+   text-dim:       #8a8694
+   success:        #4ae176
+   error:          #d73357
+   darker-bg:      #0a0a10
+   ──────────────────────────────────────────────────────── */
+
+/* Screen */
+Screen { background: #0e0d15; color: #f2effa; }
+
+/* Surface hierarchy */
+#chat-area { background: #13131b; }
+#messages { background: #0e0d15; overflow-y: auto; }
+
+/* Messages */
+.msg-user { background: #13131b; color: #f2effa; margin: 1 2 0 12; padding: 1 2; }
+.msg-assistant { background: #191922; color: #f2effa; margin: 1 12 0 2; padding: 1 2; border-left: thick #ba9eff; }
+.msg-user .timestamp { color: #8a8694; }
+.msg-assistant .timestamp { color: #8a8694; }
+.provider-tag { background: #8455ef; color: #f2effa; padding: 0 1; }
+.latency-tag { color: #8a8694; }
+
+/* Input */
+#input-area { background: #0e0d15; dock: bottom; height: auto; max-height: 8; padding: 0 1; }
+#chat-input { background: #0a0a10; color: #f2effa; border: none; padding: 0 1; }
+#chat-input:focus { border-bottom: tall #ba9eff; }
+.input-placeholder { color: #8a8694; }
+
+/* Mode bar */
+#mode-bar { background: #0e0d15; height: 1; padding: 0 1; }
+.mode-active { color: #ba9eff; text-style: bold; }
+.mode-inactive { color: #8a8694; }
+
+/* Sidebar */
+#sidebar { background: #0e0d15; width: 30; dock: left; border-right: tall #191922; }
+#sidebar-title { color: #8a8694; text-style: bold; padding: 1 1; }
+.session-item { padding: 0 1; height: 1; }
+.session-item:hover { background: #191922; }
+.session-item.-selected { background: #252530; color: #ba9eff; }
+.session-group-label { color: #8a8694; text-style: bold; padding: 1 1 0 1; }
+
+/* Telemetry */
+#telemetry { background: #0e0d15; width: 30; dock: right; border-left: tall #191922; }
+#telemetry-title { color: #8a8694; text-style: bold; padding: 1 1; }
+.telemetry-label { color: #8a8694; }
+.telemetry-value { color: #f2effa; }
+.status-online { color: #4ae176; }
+.status-offline { color: #d73357; }
+.status-connecting { color: #ba9eff; }
+
+/* Settings */
+#settings-screen { background: #0e0d15; }
+.settings-tab-active { background: #191922; color: #ba9eff; text-style: bold; padding: 0 2; }
+.settings-tab-inactive { background: #0e0d15; color: #8a8694; padding: 0 2; }
+.settings-label { color: #f2effa; }
+.settings-value { color: #ba9eff; }
+.settings-field.-selected { background: #191922; }
+
+/* Welcome */
+#welcome { background: #0e0d15; align: center middle; }
+#welcome-logo { color: #ba9eff; text-style: bold; }
+#welcome-title { color: #f2effa; }
+.quick-action { background: #191922; padding: 1 2; margin: 1; width: 24; height: 5; }
+.quick-action:hover { background: #252530; border: tall #ba9eff; }
+
+/* Code blocks */
+.code-block { background: #0a0a10; padding: 1; margin: 1 0; }
+.code-header { background: #191922; color: #8a8694; padding: 0 1; }
+.code-copy-hint { color: #8455ef; }
+
+/* General */
+.hidden { display: none; }
+.thinking-indicator { color: #ba9eff; }
+Toast { background: #191922; color: #f2effa; }
+Header { background: #13131b; color: #f2effa; }
+Footer { background: #13131b; color: #8a8694; }
