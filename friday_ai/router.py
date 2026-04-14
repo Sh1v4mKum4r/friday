@@ -428,26 +428,36 @@ class ProviderRouter:
             return await self._fallback(prompt, tools, history, system_prompt)
 
         if intent == "complex":
-            # Race all cloud providers (CLIs + Google AI, skip Ollama + googler)
+            # Try racing cloud first, fall back to Ollama if no internet
             cloud = [p for p in self.providers
                      if p.name not in ("ollama", "web_search")]
             available = [p for p in cloud if await p.is_available()]
             if available:
-                return await self._race_providers(available, prompt, tools, history, system_prompt)
-            return await self._fallback(prompt, tools, history, system_prompt)
+                result = await self._race_providers(available, prompt, tools, history, system_prompt)
+                if result.content:
+                    return result
+            # No cloud or all failed → Ollama handles it (slower but works offline)
+            return await self._try_ollama_then_fallback(prompt, tools, history, system_prompt)
 
         if intent == "search":
-            # Race Google AI + cloud CLIs (all can answer search queries well)
+            # Try racing cloud + Google AI, fall back to Ollama if offline
             search_providers = [p for p in self.providers
                                 if p.name not in ("ollama", "web_search")]
             available = [p for p in search_providers if await p.is_available()]
             if available:
-                return await self._race_providers(available, prompt, tools, history, system_prompt)
-            # Fall back to googler
+                result = await self._race_providers(available, prompt, tools, history, system_prompt)
+                if result.content:
+                    return result
+            # Fall back to googler → Ollama
             ws = self._find_by_name("web_search")
             if ws and await ws.is_available():
-                return await ws.send_message(prompt, tools, history, system_prompt)
-            return await self._fallback(prompt, tools, history, system_prompt)
+                try:
+                    result = await ws.send_message(prompt, tools, history, system_prompt)
+                    if result.content:
+                        return result
+                except Exception:
+                    pass
+            return await self._try_ollama_then_fallback(prompt, tools, history, system_prompt)
 
         if intent == "unknown":
             # Ollama first, cloud if it fails
@@ -494,6 +504,24 @@ class ProviderRouter:
                     continue
 
         return ProviderResponse(content="Error: all cloud providers failed.", provider_name="")
+
+    async def _try_ollama_then_fallback(
+        self,
+        prompt: str,
+        tools: list[dict] | None,
+        history: list[dict],
+        system_prompt: str,
+    ) -> ProviderResponse:
+        """Try Ollama first, then full fallback chain. For offline resilience."""
+        for p in self.providers:
+            if p.name == "ollama" and await p.is_available():
+                try:
+                    response = await p.send_message(prompt, tools, history, system_prompt)
+                    if response.content or response.tool_calls:
+                        return response
+                except Exception:
+                    pass
+        return await self._fallback(prompt, tools, history, system_prompt)
 
     async def _fallback(
         self,
