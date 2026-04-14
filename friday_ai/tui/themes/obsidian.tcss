@@ -352,6 +352,31 @@ MessageWidget {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   FOOTER — keybind hints (btop-style)
+   ═══════════════════════════════════════════════════════════ */
+
+Footer {
+    background: #13131b;
+    color: #8a8694;
+    dock: bottom;
+}
+
+Footer > .footer--highlight {
+    background: #8455ef;
+    color: #f2effa;
+}
+
+Footer > .footer--highlight-key {
+    background: #ba9eff;
+    color: #0e0d15;
+}
+
+Footer > .footer--key {
+    background: #252530;
+    color: #f2effa;
+}
+
+/* ═══════════════════════════════════════════════════════════
    GENERAL
    ═══════════════════════════════════════════════════════════ */
 

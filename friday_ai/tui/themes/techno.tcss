@@ -354,6 +354,11 @@ MessageWidget {
    GENERAL
    ═══════════════════════════════════════════════════════════ */
 
+Footer { background: #111111; color: #6a946a; dock: bottom; }
+Footer > .footer--highlight { background: #22c55e; color: #e0ffe0; }
+Footer > .footer--highlight-key { background: #4ae176; color: #0a0a0a; }
+Footer > .footer--key { background: #222222; color: #e0ffe0; }
+
 .hidden { display: none; }
 
 Toast {

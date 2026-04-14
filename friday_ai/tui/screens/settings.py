@@ -7,7 +7,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import Label
+from textual.widgets import Footer, Label
 
 from friday_ai.tui.config import TUIConfig, VALID_THEMES, VALID_RENDER_MODES, VALID_SPACING
 
@@ -63,13 +63,13 @@ class SettingsScreen(Screen):
         ("escape", "dismiss", "Close"),
         ("up,k", "move_up", "Up"),
         ("down,j", "move_down", "Down"),
-        ("left,h", "cycle_left", "Left"),
-        ("right,l", "cycle_right", "Right"),
+        ("left,h", "cycle_left", "< Value"),
+        ("right,l", "cycle_right", "Value >"),
         ("enter", "toggle_field", "Toggle"),
-        ("a", "toggle_mode", "Advanced"),
+        ("a", "toggle_mode", "Simple/Advanced"),
         ("s", "save", "Save"),
-        ("tab", "next_tab", "Tab"),
-        ("shift+tab", "prev_tab", "Tab"),
+        ("tab", "next_tab", "Next Tab"),
+        ("shift+tab", "prev_tab", "Prev Tab"),
     ]
 
     settings_mode: reactive[str] = reactive("simple")
@@ -87,18 +87,15 @@ class SettingsScreen(Screen):
         self._modified = False
 
     def compose(self) -> ComposeResult:
+        yield Footer()
         with Vertical(id="settings-screen"):
             with Horizontal(id="settings-header"):
-                yield Label("FRIDAY SETTINGS", classes="settings-label")
+                yield Label(" FRIDAY SETTINGS", classes="settings-label")
                 mode_label = "[a] Advanced" if self.settings_mode == "simple" else "[a] Simple"
                 yield Label(mode_label, id="mode-toggle-label", classes="settings-value")
             if self.settings_mode == "advanced":
                 yield self._compose_tabs()
             yield VerticalScroll(id="settings-fields")
-            with Horizontal(id="settings-footer"):
-                yield Label("  j/k Navigate  h/l Change  Enter Toggle  s Save  Esc Close", classes="telemetry-label")
-                modified = " [modified]" if self._modified else ""
-                yield Label(f"  [Save] [Discard]{modified}", id="save-status", classes="settings-value")
 
     def _compose_tabs(self) -> Horizontal:
         tabs = ["GENERAL", "PROVIDER", "MCP", "TOOLS", "MEMORY", "IDENTITY", "APPEARANCE", "KEYBINDS"]
@@ -274,11 +271,7 @@ class SettingsScreen(Screen):
 
     def _mark_modified(self) -> None:
         self._modified = True
-        try:
-            label = self.query_one("#save-status", Label)
-            label.update("  [Save] [Discard] [modified]")
-        except Exception:
-            pass
+        self.notify("Modified — press s to save", timeout=2)
 
     def _rebuild_all(self) -> None:
         self.remove_children()

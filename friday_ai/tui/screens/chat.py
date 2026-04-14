@@ -8,7 +8,7 @@ from textual.app import ComposeResult
 from textual.containers import Center, ItemGrid, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.message import Message
-from textual.widgets import Label, Static
+from textual.widgets import Footer, Label, Static
 
 from friday_ai.tui.widgets.input_bar import InputBar
 from friday_ai.tui.widgets.message import MessageWidget
@@ -65,12 +65,15 @@ class ChatScreen(Screen):
     """The main chat interface."""
 
     BINDINGS = [
-        ("ctrl+b", "toggle_sidebar", "Sidebar"),
-        ("ctrl+t", "toggle_telemetry", "Telemetry"),
+        ("ctrl+b", "toggle_sidebar", "History"),
+        ("ctrl+t", "toggle_telemetry", "System"),
+        ("ctrl+s", "app.open_settings", "Settings"),
+        ("ctrl+n", "app.new_conversation", "New Chat"),
         ("ctrl+1", "mode_chat", "Chat"),
         ("ctrl+2", "mode_command", "Command"),
         ("ctrl+3", "mode_search", "Search"),
         ("i", "focus_input", "Input"),
+        ("q", "app.quit", "Quit"),
     ]
 
     class QuickActionChosen(Message):
@@ -85,6 +88,7 @@ class ChatScreen(Screen):
         yield Sidebar(classes="hidden")
         yield TelemetryPanel(classes="hidden")
         # Bottom-docked elements (first = outermost bottom)
+        yield Footer()
         yield InputBar()
         yield ModeBar()
         # Main content area — welcome panel shown initially, messages hidden
