@@ -50,9 +50,17 @@ case "${1:-}" in
         exit 0
         ;;
     --daemon)
-        echo "Friday running in daemon mode (PID: $BACKEND_PID). Press Ctrl+C to stop."
-        trap "kill $BACKEND_PID 2>/dev/null" EXIT
-        wait $BACKEND_PID
+        # Start Rust core in daemon mode (socket listener + panel)
+        cd "$FRIDAY_DIR/friday_core"
+        if [ ! -f "target/release/friday_core" ]; then
+            cargo build --release 2>&1 | tail -1
+        fi
+        ./target/release/friday_core --daemon &
+        RUST_PID=$!
+
+        trap "kill $BACKEND_PID $RUST_PID 2>/dev/null" EXIT
+        # Wait on both — if either dies, cleanup
+        wait $BACKEND_PID $RUST_PID
         ;;
     --cli-only|"")
         # Start Rust core
