@@ -68,39 +68,35 @@ class GoogleAIProvider(BaseProvider):
 
             data = resp.json()
 
-            # Extract AI mode response
-            ai_response = data.get("ai_mode_response", {})
-            text = ai_response.get("text", "")
+            # SerpAPI returns reconstructed_markdown at top level
+            text = data.get("reconstructed_markdown", "")
 
-            # Also try snippets if no AI response
+            # Fallback: try text_blocks
             if not text:
-                snippets = data.get("organic_results", [])
-                if snippets:
-                    parts = []
-                    for s in snippets[:3]:
-                        title = s.get("title", "")
-                        snippet = s.get("snippet", "")
-                        link = s.get("link", "")
-                        parts.append(f"**{title}**\n{snippet}\n{link}")
-                    text = "\n\n".join(parts)
+                blocks = data.get("text_blocks", [])
+                if blocks:
+                    text = "\n\n".join(
+                        b.get("text", "") for b in blocks if b.get("text")
+                    )
 
             if not text:
                 return None
 
-            # Clean up
+            # Clean up escaped chars
+            text = text.replace("\\-", "-").replace("\\.", ".")
             text = re.sub(r'\n{3,}', '\n\n', text).strip()
 
-            # Add sources if available
-            sources = ai_response.get("sources", [])
-            if sources:
+            # Add references
+            refs = data.get("references", [])
+            if refs:
                 text += "\n\n**Sources:**"
-                for s in sources[:5]:
-                    title = s.get("title", "")
-                    url = s.get("link", s.get("url", ""))
+                for r in refs[:5]:
+                    title = r.get("title", "")
+                    url = r.get("link", "")
                     if title and url:
                         text += f"\n- [{title}]({url})"
 
-            return ProviderResponse(content=text, provider_name="google_ai (serpapi)")
+            return ProviderResponse(content=text, provider_name="google_ai")
 
         except Exception:
             return None
