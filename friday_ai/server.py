@@ -168,6 +168,9 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         data_dir=data_dir,
         mcp_manager=mcp_manager,
     )
+    # Set model variants for intent-based selection
+    agent._fast_model = config.providers.ollama_model_fast
+    agent._heavy_model = config.providers.ollama_model_heavy
 
     # ------------------------------------------------------------------ #
     # Store on app.state for endpoint access                               #

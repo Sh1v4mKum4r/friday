@@ -1,5 +1,7 @@
 [providers]
 ollama_model = "qwen2.5:7b"
+ollama_model_fast = "qwen2.5:3b"
+ollama_model_heavy = "qwen2.5:7b"
 ollama_url = "http://localhost:11434"
 gemini_api_key = ""
 claude_api_key = ""

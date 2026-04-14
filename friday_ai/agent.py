@@ -98,6 +98,9 @@ class Agent:
         tool_schemas = self._filter_tools(intent, message)
         tools_desc = self._tools_desc_from_schemas(tool_schemas)
 
+        # Select Ollama model based on intent (fast 3B for simple, heavy 7B for complex)
+        self._select_ollama_model(intent)
+
         system_prompt = build_system_prompt(identity, tools_desc, memory_context)
 
         # ------------------------------------------------------------------ #
@@ -178,6 +181,28 @@ class Agent:
         )
 
     # ------------------------------------------------------------------
+    # Smart model selection
+    # ------------------------------------------------------------------
+
+    def _select_ollama_model(self, intent: str) -> None:
+        """Swap the Ollama provider's model based on intent.
+
+        - chat/system/unknown → fast model (3B) — stays loaded, instant
+        - complex → heavy model (7B) — loads on demand, better reasoning
+        """
+        # Find the Ollama provider in the router
+        for provider in self.router.providers:
+            if provider.name == "ollama":
+                if intent == "complex":
+                    target = getattr(self, '_heavy_model', 'qwen2.5:7b')
+                else:
+                    target = getattr(self, '_fast_model', 'qwen2.5:3b')
+                if provider.model != target:
+                    logger.info("Switching Ollama model: %s → %s (intent: %s)", provider.model, target, intent)
+                    provider.model = target
+                break
+
+    # ------------------------------------------------------------------
     # Smart tool filtering
     # ------------------------------------------------------------------
 
@@ -190,7 +215,7 @@ class Agent:
                    "clipboard_get", "clipboard_set", "cron", "sysinfo", "bluetooth"},
         "complex": set(),  # core tools + LLM reasoning is enough
         "search": {"web_search"},
-        "chat": set(),  # no tools needed for greetings
+        "chat": {"__none__"},  # special: send NO tools for greetings
         "dangerous": set(),
         "unknown": {"run_shell", "sysinfo", "web_search"},
     }
@@ -201,7 +226,11 @@ class Agent:
         This keeps the prompt small and the LLM fast — a 7B model with
         5 tools responds 3-5x faster than with 19.
         """
-        allowed = self._CORE_TOOLS | self._INTENT_TOOLS.get(intent, set())
+        intent_tools = self._INTENT_TOOLS.get(intent, set())
+        # Special case: chat intent sends NO tools (pure conversation)
+        if "__none__" in intent_tools:
+            return []
+        allowed = self._CORE_TOOLS | intent_tools
 
         # If message explicitly mentions a tool name, include it
         msg_lower = message.lower()

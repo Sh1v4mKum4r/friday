@@ -29,6 +29,8 @@ class ProvidersConfig:
     gemini_model: str = "gemini-2.5-flash"
     claude_model: str = "claude-sonnet-4-6"
     openai_model: str = "gpt-4o"
+    ollama_model_fast: str = "qwen2.5:3b"
+    ollama_model_heavy: str = "qwen2.5:7b"
 
 
 @dataclass
