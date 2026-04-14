@@ -32,6 +32,7 @@ stream = [
 ]
 
 [project.scripts]
+friday = "friday_ai.tui:main"
 friday-tui = "friday_ai.tui:main"
 
 [tool.setuptools.packages.find]
