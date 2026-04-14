@@ -478,6 +478,7 @@ function renderThemeSelect() {
 window.fridayApplyTheme = function(name) {
   if (!THEMES.find(function(t) { return t.id === name; })) return;
   safeStorage.setItem(THEME_KEY, name);
+  fetch(API + '/theme?name=' + encodeURIComponent(name), { method: 'POST' }).catch(function() {});
   window.location.href = '/static/themes/' + name + '.html';
 };
 

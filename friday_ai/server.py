@@ -309,11 +309,36 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     # ------------------------------------------------------------------ #
 
     static_dir = Path(__file__).parent / "static"
+    VALID_THEMES = ("obsidian", "techno", "neural", "prism")
+    theme_file = Path.home() / ".local" / "share" / "friday" / "theme.txt"
+
+    def _read_theme() -> str:
+        try:
+            t = theme_file.read_text().strip()
+            return t if t in VALID_THEMES else "obsidian"
+        except Exception:
+            return "obsidian"
 
     @app.get("/")
     async def ui_root():
-        """Serve the Friday chat UI."""
-        return FileResponse(static_dir / "index.html")
+        """Serve the active theme directly."""
+        theme = _read_theme()
+        path = static_dir / "themes" / f"{theme}.html"
+        if path.exists():
+            return FileResponse(path)
+        return FileResponse(static_dir / "themes" / "obsidian.html")
+
+    @app.get("/theme")
+    async def get_theme():
+        return {"theme": _read_theme()}
+
+    @app.post("/theme")
+    async def set_theme(name: str = Query(...)):
+        if name not in VALID_THEMES:
+            return {"error": "invalid theme", "valid": list(VALID_THEMES)}
+        theme_file.parent.mkdir(parents=True, exist_ok=True)
+        theme_file.write_text(name)
+        return {"theme": name}
 
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
