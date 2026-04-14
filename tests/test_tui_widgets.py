@@ -81,3 +81,59 @@ class TestMessageWidget:
             msg.append_token("Hello")
             msg.append_token(" world")
             assert msg.content == "Hello world"
+
+
+from friday_ai.tui.widgets.mode_bar import ModeBar
+from friday_ai.tui.widgets.input_bar import InputBar
+
+
+class TestModeBar:
+    @pytest.mark.asyncio
+    async def test_default_mode_is_chat(self):
+        widget = ModeBar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            bar = pilot.app.query_one(ModeBar)
+            assert bar.current_mode == "chat"
+
+    @pytest.mark.asyncio
+    async def test_cycle_mode(self):
+        widget = ModeBar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            bar = pilot.app.query_one(ModeBar)
+            bar.set_mode("command")
+            assert bar.current_mode == "command"
+            bar.set_mode("search")
+            assert bar.current_mode == "search"
+            bar.set_mode("chat")
+            assert bar.current_mode == "chat"
+
+
+class TestInputBar:
+    @pytest.mark.asyncio
+    async def test_renders(self):
+        widget = InputBar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            bar = pilot.app.query_one(InputBar)
+            assert bar is not None
+
+    @pytest.mark.asyncio
+    async def test_placeholder_changes_with_mode(self):
+        widget = InputBar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            bar = pilot.app.query_one(InputBar)
+            bar.set_mode("chat")
+            assert bar.placeholder == "Message Friday..."
+            bar.set_mode("command")
+            assert bar.placeholder == "! shell or /friday command..."
+            bar.set_mode("search")
+            assert bar.placeholder == "Search conversations..."
+
+    @pytest.mark.asyncio
+    async def test_thinking_state(self):
+        widget = InputBar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            bar = pilot.app.query_one(InputBar)
+            bar.set_thinking(True)
+            assert bar.is_thinking is True
+            bar.set_thinking(False)
+            assert bar.is_thinking is False
