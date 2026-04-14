@@ -429,6 +429,10 @@ class ProviderRouter:
             return await self._fallback(prompt, tools, history, system_prompt)
 
         if intent == "search":
+            # Prefer Google AI for search — gives AI-summarized results
+            gai = self._find_by_name("google_ai")
+            if gai and await gai.is_available():
+                return await gai.send_message(prompt, tools, history, system_prompt)
             ws = self._find_by_name("web_search")
             if ws and await ws.is_available():
                 return await ws.send_message(prompt, tools, history, system_prompt)
