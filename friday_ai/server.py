@@ -9,6 +9,7 @@ Usage:
 
 from __future__ import annotations
 
+import json as json_module
 import logging
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from sse_starlette.sse import EventSourceResponse
 
 from .agent import Agent
 from .config import (
@@ -220,6 +222,20 @@ def create_app(config_path: Path | None = None) -> FastAPI:
             race=request.race,
         )
         return ChatResponse(response=result.content, provider=result.provider_name)
+
+    @app.post("/chat/stream")
+    async def chat_stream(request: ChatRequest):
+        """Stream chat response as SSE events."""
+        agent = app.state.agent
+
+        async def generate():
+            async for chunk in agent.stream_chat(
+                request.message,
+                force_provider=request.force_provider,
+            ):
+                yield {"data": json_module.dumps(chunk)}
+
+        return EventSourceResponse(generate())
 
     @app.get("/context", response_model=ContextResponse)
     async def context():

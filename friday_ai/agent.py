@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import AsyncIterator
 
 from .identity import build_system_prompt, delete_bootstrap, load_identity
 from .mcp_client import MCPManager
@@ -179,6 +180,32 @@ class Agent:
             content="Error: max tool rounds exceeded with no response.",
             provider_name="",
         )
+
+    async def stream_chat(
+        self,
+        message: str,
+        force_provider: str | None = None,
+    ) -> AsyncIterator[dict]:
+        """Stream chat tokens. Yields {"token": str, "done": bool, ...}."""
+        import time
+
+        start = time.monotonic()
+
+        try:
+            result = await self.chat(message, force_provider=force_provider)
+            content = result.content
+            provider_name = result.provider_name
+
+            # Yield tokens (word-level chunks)
+            words = content.split(" ")
+            for i, word in enumerate(words):
+                token = word if i == 0 else " " + word
+                yield {"token": token, "done": False}
+
+            elapsed = time.monotonic() - start
+            yield {"token": "", "done": True, "provider": provider_name, "latency": round(elapsed, 3)}
+        except Exception as e:
+            yield {"token": "", "done": True, "error": str(e), "provider": "error", "latency": 0}
 
     # ------------------------------------------------------------------
     # Smart model selection
