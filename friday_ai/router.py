@@ -285,6 +285,19 @@ class ProviderRouter:
             )
 
         # ------------------------------------------------------------------ #
+        # Fallback mode: use Google AI first for search intent                #
+        # ------------------------------------------------------------------ #
+        if needs_web_search(prompt):
+            gai = self._find_by_name("google_ai")
+            if gai and await gai.is_available():
+                try:
+                    response = await gai.send_message(prompt, tools, history, system_prompt)
+                    if response.content:
+                        return response
+                except Exception:
+                    pass  # Fall through to normal chain
+
+        # ------------------------------------------------------------------ #
         # Build the candidate list, optionally with escalation                #
         # ------------------------------------------------------------------ #
         candidates = self._build_candidate_list(prompt)
@@ -394,16 +407,16 @@ class ProviderRouter:
         system_prompt: str = "",
         intent: str = "unknown",
     ) -> ProviderResponse:
-        """Intent-aware racing — only race providers that make sense.
+        """Intent-aware routing — right providers for the right task.
 
-        - chat/system → Ollama only (local is fast enough)
-        - complex → race cloud CLIs only (Claude vs Gemini)
-        - search → web_search provider only
-        - dangerous → block
-        - unknown → fallback chain (no race)
+        chat/system   → Ollama only (fast, local, no network needed)
+        complex       → Race cloud CLIs + Google AI (fastest smart answer wins)
+        search        → Race Google AI + cloud CLIs (live data + AI reasoning)
+        dangerous     → block
+        unknown       → Ollama first, cloud fallback
         """
-        if intent in ("chat", "system", "unknown"):
-            # Use Ollama directly, no racing
+        if intent in ("chat", "system"):
+            # Local only — fast, no network
             for p in self.providers:
                 if p.name == "ollama" and await p.is_available():
                     try:
@@ -412,32 +425,43 @@ class ProviderRouter:
                             return response
                     except Exception:
                         pass
-            # Ollama failed, fall through to fallback
             return await self._fallback(prompt, tools, history, system_prompt)
 
         if intent == "complex":
-            # Race only cloud providers (skip Ollama — too slow for complex)
-            cloud = [p for p in self.providers if p.name != "ollama" and p.name != "web_search"]
-            available_cloud = []
-            for p in cloud:
-                if await p.is_available():
-                    available_cloud.append(p)
-
-            if available_cloud:
-                return await self._race_providers(available_cloud, prompt, tools, history, system_prompt)
-            # No cloud available, fall back to Ollama
+            # Race all cloud providers (CLIs + Google AI, skip Ollama + googler)
+            cloud = [p for p in self.providers
+                     if p.name not in ("ollama", "web_search")]
+            available = [p for p in cloud if await p.is_available()]
+            if available:
+                return await self._race_providers(available, prompt, tools, history, system_prompt)
             return await self._fallback(prompt, tools, history, system_prompt)
 
         if intent == "search":
-            # Prefer Google AI for search — gives AI-summarized results
-            gai = self._find_by_name("google_ai")
-            if gai and await gai.is_available():
-                return await gai.send_message(prompt, tools, history, system_prompt)
+            # Race Google AI + cloud CLIs (all can answer search queries well)
+            search_providers = [p for p in self.providers
+                                if p.name not in ("ollama", "web_search")]
+            available = [p for p in search_providers if await p.is_available()]
+            if available:
+                return await self._race_providers(available, prompt, tools, history, system_prompt)
+            # Fall back to googler
             ws = self._find_by_name("web_search")
             if ws and await ws.is_available():
                 return await ws.send_message(prompt, tools, history, system_prompt)
+            return await self._fallback(prompt, tools, history, system_prompt)
 
-        # Default: fallback chain
+        if intent == "unknown":
+            # Ollama first, cloud if it fails
+            for p in self.providers:
+                if p.name == "ollama" and await p.is_available():
+                    try:
+                        response = await p.send_message(prompt, tools, history, system_prompt)
+                        if response.content or response.tool_calls:
+                            return response
+                    except Exception:
+                        pass
+            return await self._fallback(prompt, tools, history, system_prompt)
+
+        # Default
         return await self._fallback(prompt, tools, history, system_prompt)
 
     async def _race_providers(
