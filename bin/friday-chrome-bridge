@@ -2,38 +2,66 @@
 # friday-chrome-bridge — Manages headless Chrome for AI Mode API extension
 #
 # Usage:
-#   friday-chrome-bridge setup    — Open Chrome visually to install extension (one-time)
-#   friday-chrome-bridge start    — Start headless Chrome with extension
-#   friday-chrome-bridge stop     — Stop the background Chrome
-#   friday-chrome-bridge status   — Check if running
+#   friday-chrome-bridge setup      — Install extension + paste API URL (one-time)
+#   friday-chrome-bridge start      — Start headless Chrome
+#   friday-chrome-bridge stop       — Stop headless Chrome
+#   friday-chrome-bridge reconnect  — Reopen visually to reconnect + paste new URL
+#   friday-chrome-bridge status     — Check if running
 
 CHROME_BIN="google-chrome-stable"
 DISPLAY_NUM=99
 PIDFILE="/tmp/friday-chrome-bridge.pid"
 XVFB_PIDFILE="/tmp/friday-xvfb.pid"
 CHROME_PROFILE="$HOME/.config/friday/chrome-bridge-profile"
+CONFIG="$HOME/.config/friday/config.toml"
+
+save_api_url() {
+    echo ""
+    echo "  Now copy the API ENDPOINT URL from the extension popup."
+    echo ""
+    echo -n "  Paste API URL: "
+    read -r API_URL
+
+    if [ -n "$API_URL" ]; then
+        if grep -q "aimodeapi_url" "$CONFIG" 2>/dev/null; then
+            sed -i "s|aimodeapi_url = \".*\"|aimodeapi_url = \"$API_URL\"|" "$CONFIG"
+        else
+            sed -i "/serpapi_key/a aimodeapi_url = \"$API_URL\"" "$CONFIG"
+        fi
+        echo ""
+        echo -n "  Testing... "
+        if curl -s "$API_URL" -H "Content-Type: application/json" -d '{"query":"test"}' 2>/dev/null | grep -q "success"; then
+            echo "✓ Connected!"
+        else
+            echo "✗ Not responding (try again in a few seconds)"
+        fi
+        echo "  ✓ URL saved to config"
+    else
+        echo "  Skipped. Add later: friday config edit"
+    fi
+}
 
 case "${1:-}" in
     setup)
-        echo "Opening Chrome with Friday bridge profile..."
         echo ""
-        echo "Setup steps:"
-        echo "  1. Enable 'Developer mode' in chrome://extensions (top-right toggle)"
-        echo "  2. Go to https://aimodeapi.com and install the extension"
-        echo "  3. Click the extension icon in toolbar to connect"
-        echo "  4. Wait for green 'Connected' status"
-        echo "  5. Copy the API ENDPOINT shown in the popup"
-        echo "  6. Update your config:"
-        echo "     friday config edit"
-        echo "     # Add: aimodeapi_url = \"https://app.aimodeapi.com/api/YOUR-ID\""
-        echo "  7. Close Chrome when done"
+        echo "  ┌─ AI Mode API Setup ─────────────────────┐"
+        echo "  │                                          │"
+        echo "  │  Chrome will open. Follow these steps:   │"
+        echo "  │                                          │"
+        echo "  │  1. Enable Developer mode (top-right)    │"
+        echo "  │  2. Go to https://aimodeapi.com          │"
+        echo "  │  3. Install the extension                │"
+        echo "  │  4. Click extension icon in toolbar      │"
+        echo "  │  5. Wait for green 'Connected'           │"
+        echo "  │  6. Click 'Copy' next to API ENDPOINT    │"
+        echo "  │  7. Come back here and paste it          │"
+        echo "  │                                          │"
+        echo "  └──────────────────────────────────────────┘"
         echo ""
-        echo "NOTE: The extension generates a unique API URL per connection."
-        echo "      You need to update it in config if the connection ID changes."
-        echo ""
+
         mkdir -p "$CHROME_PROFILE"
 
-        # Enable developer mode in extensions preferences
+        # Enable developer mode
         PREFS_DIR="$CHROME_PROFILE/Default"
         mkdir -p "$PREFS_DIR"
         if [ -f "$PREFS_DIR/Preferences" ]; then
@@ -47,11 +75,50 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
             echo '{"extensions":{"ui":{"developer_mode":true}}}' > "$PREFS_DIR/Preferences"
         fi
 
+        # Open Chrome (blocks until closed)
         $CHROME_BIN \
             --no-first-run \
             --user-data-dir="$CHROME_PROFILE" \
-            "chrome://extensions" 2>/dev/null
-        echo "Setup complete. Now run: friday-chrome-bridge start"
+            "chrome://extensions" 2>/dev/null &
+        CHROME_PID=$!
+
+        # Ask for URL while Chrome is open
+        save_api_url
+
+        echo ""
+        echo "  Close Chrome, then run: friday chrome-bridge start"
+        wait $CHROME_PID 2>/dev/null
+        ;;
+
+    reconnect)
+        echo "  Opening Chrome to reconnect..."
+        echo "  Click the extension icon → wait for 'Connected'"
+        echo ""
+
+        # Stop headless if running
+        if [ -f "$PIDFILE" ]; then
+            kill "$(cat $PIDFILE)" 2>/dev/null
+            rm -f "$PIDFILE"
+        fi
+        if [ -f "$XVFB_PIDFILE" ]; then
+            kill "$(cat $XVFB_PIDFILE)" 2>/dev/null
+            rm -f "$XVFB_PIDFILE"
+        fi
+
+        # Open visually
+        $CHROME_BIN \
+            --no-first-run \
+            --user-data-dir="$CHROME_PROFILE" \
+            "https://www.google.com" 2>/dev/null &
+        CHROME_PID=$!
+
+        # Ask for new URL if connection ID changed
+        save_api_url
+
+        echo ""
+        echo "  Close Chrome. Restarting headless..."
+        wait $CHROME_PID 2>/dev/null
+        exec "$0" start
         ;;
 
     start)
@@ -61,7 +128,7 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
         fi
 
         if [ ! -d "$CHROME_PROFILE/Default" ]; then
-            echo "No profile found. Run 'friday-chrome-bridge setup' first."
+            echo "No profile found. Run 'friday chrome-bridge setup' first."
             exit 1
         fi
 
@@ -87,28 +154,19 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
         echo $! > "$PIDFILE"
         sleep 3
 
-        # Try to activate extension by clicking its toolbar icon via xdotool
-        if command -v xdotool &>/dev/null; then
-            # Find Chrome window on the virtual display
-            DISPLAY=:$DISPLAY_NUM xdotool search --name "Google" windowactivate 2>/dev/null
-            sleep 1
-            # Keyboard shortcut to open extension popup (Alt+Shift+A is common)
-            # Or use Chrome's built-in extension keyboard shortcut
-            DISPLAY=:$DISPLAY_NUM xdotool key --clearmodifiers alt+shift+a 2>/dev/null
-            sleep 2
-        fi
-
         echo "Chrome bridge running (headless, PID: $(cat $PIDFILE))"
 
         # Verify connection
-        sleep 3
-        API_URL=$(grep "aimodeapi_url" "$HOME/.config/friday/config.toml" 2>/dev/null | cut -d'"' -f2)
+        API_URL=$(grep "aimodeapi_url" "$CONFIG" 2>/dev/null | cut -d'"' -f2)
         if [ -n "$API_URL" ] && [ "$API_URL" != "" ]; then
+            echo -n "Checking connection... "
             if curl -s "$API_URL" -H "Content-Type: application/json" -d '{"query":"test"}' 2>/dev/null | grep -q "success"; then
-                echo "Extension connected ✓"
+                echo "✓ Connected"
             else
-                echo "Extension may not be connected. Try: friday chrome-bridge reconnect"
+                echo "✗ Extension not connected. Run: friday chrome-bridge reconnect"
             fi
+        else
+            echo "No API URL configured. Run: friday chrome-bridge reconnect"
         fi
         ;;
 
@@ -125,48 +183,23 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
         fi
         ;;
 
-    reconnect)
-        # Stop headless, open visually to reconnect, then go headless again
-        echo "Opening Chrome to reconnect extension..."
-        echo "  1. Click the AI Mode API extension icon"
-        echo "  2. Wait for green 'Connected'"
-        echo "  3. Close Chrome"
-        echo ""
-
-        # Stop headless if running
-        if [ -f "$PIDFILE" ]; then
-            kill "$(cat $PIDFILE)" 2>/dev/null
-            rm -f "$PIDFILE"
-        fi
-        if [ -f "$XVFB_PIDFILE" ]; then
-            kill "$(cat $XVFB_PIDFILE)" 2>/dev/null
-            rm -f "$XVFB_PIDFILE"
-        fi
-
-        # Open visually
-        $CHROME_BIN \
-            --no-first-run \
-            --user-data-dir="$CHROME_PROFILE" \
-            "https://www.google.com" 2>/dev/null
-
-        echo "Chrome closed. Restarting headless..."
-        exec "$0" start
-        ;;
-
     status)
         if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
             echo "Running (Chrome PID: $(cat $PIDFILE))"
+            API_URL=$(grep "aimodeapi_url" "$CONFIG" 2>/dev/null | cut -d'"' -f2)
+            [ -n "$API_URL" ] && echo "API URL: $API_URL"
         else
             echo "Not running."
         fi
         ;;
 
     *)
-        echo "Usage: friday-chrome-bridge <command>"
+        echo "Usage: friday chrome-bridge <command>"
         echo ""
-        echo "  setup    Open Chrome to install AI Mode API extension (one-time)"
-        echo "  start    Start headless Chrome (no visible window)"
-        echo "  stop     Stop headless Chrome"
-        echo "  status   Check if running"
+        echo "  setup      Install extension + paste API URL (one-time)"
+        echo "  start      Start headless Chrome"
+        echo "  stop       Stop headless Chrome"
+        echo "  reconnect  Reopen Chrome to reconnect + update URL"
+        echo "  status     Check if running"
         ;;
 esac
