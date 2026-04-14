@@ -146,7 +146,7 @@
   CONFIG_
 </button>
 <span onclick="window.fridayToggleSettings()" class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors" title="Settings">settings_input_component</span>
-<span onclick="window.fridayNewConvo()" class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors" title="New Session">grid_view</span>
+<span onclick="window.fridayComingSoon('Grid view')" class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors" title="Grid view">grid_view</span>
 </div>
 </div>
 </header>
@@ -162,13 +162,13 @@
 </div>
 <div class="flex items-center gap-2">
 <div class="flex-1 flex items-center terminal-border bg-surface-container-lowest relative group">
-<button onclick="window.fridayNewConvo()" class="px-3 text-white/30 hover:text-secondary transition-colors" title="New Session">
+<button onclick="window.fridayComingSoon('File attachment')" class="px-3 text-white/30 hover:text-secondary transition-colors" title="Attach file">
 <span class="material-symbols-outlined text-sm">attach_file</span>
 </button>
 <input id="messageInput" class="flex-1 bg-transparent border-none focus:ring-0 text-xs font-label text-on-surface placeholder:text-secondary/20 py-2" placeholder="&gt; EXECUTE_COMMAND_OR_QUERY..." type="text"/>
 <div class="flex items-center gap-2 pr-3">
-<button onclick="window.fridayToggleSettings()" class="w-8 h-8 flex items-center justify-center text-white/30 hover:text-secondary" title="Settings">
-<span class="material-symbols-outlined text-sm">tune</span>
+<button onclick="window.fridayComingSoon('Voice input')" class="w-8 h-8 flex items-center justify-center text-white/30 hover:text-secondary" title="Voice input">
+<span class="material-symbols-outlined text-sm">mic</span>
 </button>
 <button id="sendBtn" class="bg-secondary/10 hover:bg-secondary/20 text-secondary terminal-border px-4 py-1 text-[9px] tracking-widest uppercase transition-all">
                 SEND_

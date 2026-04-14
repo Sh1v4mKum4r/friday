@@ -526,6 +526,19 @@ function removeElement(id) {
   if (el) el.remove();
 }
 
+// Toast notification
+window.fridayToast = function(msg) {
+  var existing = document.getElementById('fridayToast');
+  if (existing) existing.remove();
+  var toast = document.createElement('div');
+  toast.id = 'fridayToast';
+  toast.textContent = msg;
+  toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;padding:10px 20px;font-size:12px;font-family:monospace;letter-spacing:0.1em;text-transform:uppercase;background:rgba(0,0,0,0.9);color:#fff;border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(10px);transition:opacity 0.3s;';
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 2000);
+};
+window.fridayComingSoon = function(feature) { window.fridayToast(feature + ' — coming soon'); };
+
 async function checkHealth() {
   try {
     var res = await fetch(API + '/health');
