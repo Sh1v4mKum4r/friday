@@ -191,7 +191,7 @@ class TestRouterFirstAvailable:
         ollama = make_provider("ollama", available=True)
         router = ProviderRouter(providers=[ollama], auto_escalate=False)
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.content == "response from ollama"
 
@@ -200,7 +200,7 @@ class TestRouterFirstAvailable:
         ollama = make_provider("ollama", available=True)
         router = ProviderRouter(providers=[ollama], auto_escalate=False)
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == "ollama"
 
@@ -217,7 +217,7 @@ class TestRouterFallback:
         cloud = make_provider("claude", available=True)
         router = ProviderRouter(providers=[ollama, cloud], auto_escalate=False)
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         ollama.send_message.assert_not_awaited()
         cloud.send_message.assert_awaited_once()
@@ -230,7 +230,7 @@ class TestRouterFallback:
         p3 = make_provider("p3", available=True)
         router = ProviderRouter(providers=[p1, p2, p3], auto_escalate=False)
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == "p3"
 
@@ -240,7 +240,7 @@ class TestRouterFallback:
         p2 = make_provider("p2", available=False)
         router = ProviderRouter(providers=[p1, p2], auto_escalate=False)
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == ""
         assert "error" in result.content.lower() or "unavailable" in result.content.lower()
@@ -249,7 +249,7 @@ class TestRouterFallback:
     async def test_returns_error_response_when_no_providers(self):
         router = ProviderRouter(providers=[], auto_escalate=False)
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == ""
 
@@ -459,7 +459,7 @@ def make_slow_provider(name: str, delay: float, available: bool = True) -> Magic
     provider.name = name
     provider.is_available = AsyncMock(return_value=available)
 
-    async def _slow_send(**kwargs):
+    async def _slow_send(*args, **kwargs):
         await asyncio.sleep(delay)
         return ProviderResponse(content=f"response from {name}", provider_name=name)
 
@@ -478,7 +478,7 @@ class TestRaceMode:
             providers=[fast, slow], auto_escalate=False, provider_mode="race"
         )
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == "fast"
         assert result.content == "response from fast"
@@ -511,7 +511,7 @@ class TestRaceMode:
             providers=[error_provider, good], auto_escalate=False, provider_mode="race"
         )
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         # The good provider should win since the error provider crashed
         assert result.provider_name == "good"
@@ -528,7 +528,7 @@ class TestRaceMode:
             providers=[p1, p2], auto_escalate=False, provider_mode="race"
         )
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == ""
         assert "error" in result.content.lower()
@@ -541,7 +541,7 @@ class TestRaceMode:
             providers=[p1], auto_escalate=False, provider_mode="race"
         )
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         assert result.provider_name == ""
         assert "error" in result.content.lower()
@@ -572,7 +572,7 @@ class TestRaceMode:
             providers=[p1, p2], auto_escalate=False, provider_mode="race"
         )
 
-        result = await router.route(prompt="hi", tools=None, history=[])
+        result = await router.route(prompt="explain how quantum computing works in detail", tools=None, history=[])
 
         # Both providers should have been called (race fires all simultaneously)
         p1.send_message.assert_awaited_once()
