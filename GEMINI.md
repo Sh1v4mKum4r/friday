@@ -1,69 +1,141 @@
 # Friday — AI System Assistant
 
-## What Is This
-Friday (Female Replacement Intelligent Digital Assistant Youth) is a personal AI system assistant for Arch Linux. Hybrid Rust + Python architecture: Rust core for async task management, Python FastAPI backend for AI/LLM logic.
+## Your Task: Redesign the Browser Chat UI
 
-## Current State (2026-04-13)
-**Phase 1 is COMPLETE.** 279 tests passing. Rust compiles clean. Integration tested.
+The file to edit: `friday_ai/static/index.html` (single HTML file, embedded CSS+JS)
 
-Project renamed from `jarvis` → `friday`. Directory: `~/Projects/friday`.
+The backend API runs at `http://127.0.0.1:65535`. All endpoints are already working.
 
-### What's built
-- Multi-provider LLM: Ollama (local) → Claude CLI → Gemini CLI → Web Search (fallback chain)
-- Provider racing: fire all simultaneously, return fastest (`provider_mode = "race"`)
-- Rust async CLI with /btw, /parallel, /pipe, force provider commands
-- Plugin tool system (9 core tools, hot-reloadable)
-- DE abstraction (Cosmic + Hyprland auto-detect)
-- OpenClaw-inspired identity: SOUL.md, USER.md, AGENTS.md, BOOTSTRAP.md
-- Active learning memory: MEMORY.md + daily logs + keyword search across past sessions
-- Always-on Unix socket daemon + friday-send + hotkey launcher
-- All models configurable in config.toml
+## API Reference
 
-### Key files
-- `friday_ai/server.py` — FastAPI app (port 65535)
-- `friday_ai/router.py` — provider selection, fallback chain, racing
-- `friday_ai/agent.py` — prompt construction, tool-call loop (max 5 rounds)
-- `friday_ai/providers/` — Ollama, Gemini (API+CLI), Claude (API+CLI), OpenAI, web search
-- `friday_ai/tools/core/` — 9 tool plugins
-- `friday_core/src/` — Rust CLI, task manager, DE detection, socket daemon
-- `config/` — default identity files + config.toml
+```
+GET  /health              → {"status": "online", "providers": ["ollama", "claude-cli", ...]}
+POST /chat                → body: {"message": "...", "force_provider": "...", "race": true}
+                            → {"response": "...", "provider": "ollama"}
+POST /classify            → body: {"message": "..."}
+                            → {"intent": "system|complex|search|chat|dangerous|unknown"}
+GET  /context             → {"context": "...system prompt and history..."}
+POST /reload              → {"reloaded": 19, "tools": ["run_shell", "memory_save", ...]}
+POST /memory/list         → {"entries": ["user uses Cosmic DE", "user has GTX 1650"]}
+POST /memory/forget       → query: keyword → {"status": "ok", "forgot": "..."}
+POST /memory/clear        → {"status": "cleared"}
+POST /session/save        → {"status": "saved"}
+POST /session/load        → {"status": "loaded"}
+GET  /mcp/status          → {"servers": [...], "tools": [...]}
+POST /mcp/reconnect       → {"connected": [...]}
+```
 
-## Your Tasks (Gemini CLI)
+## Design Requirements
 
-Focus on **Cosmic DE polish and extension**:
+Build a **premium, polished** chat interface. The user wants the best features from ChatGPT, Claude, Gemini, and Discord combined. This is a portfolio project — it needs to look impressive.
 
-### Task A: Polish DE Abstraction Layer
-File: `friday_ai/tools/core/de.py`
-- Cosmic path uses generic `busctl call` — needs real cosmic-comp DBus methods
-- Test workspace switching, window focus, window move on Cosmic
-- Hyprland path works (`hyprctl {cmd}`) but verify
-- Ensure Wayland env vars (`WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`, `HYPRLAND_INSTANCE_SIGNATURE`) are passed
+### Must-have features
 
-### Task B: Cosmic Panel Applet
-File: `friday_core/src/panel.rs`
-- Currently stub (Waybar JSON only)
-- Build Cosmic panel applet using `libcosmic` (Rust), or a simpler script integration
-- Show: online/offline, active workers, current provider
+**Layout:**
+- Left sidebar (collapsible) with:
+  - Friday branding/logo
+  - "New chat" button
+  - Conversation history (stored in localStorage)
+  - Delete conversation button
+- Main chat area with message bubbles
+- Bottom input bar
 
-### Task C: Cosmic Launcher Integration
-File: `friday_core/src/launcher.rs`
-- Currently falls back to Rofi for Cosmic
-- Investigate Cosmic's launcher/dialog system
-- Use native Cosmic dialog if available, else Rofi fallback
+**Chat messages:**
+- User messages: right-aligned, subtle accent border
+- Friday messages: left-aligned, with avatar (purple "F"), provider tag (OLLAMA, CLAUDE-CLI, etc.), timestamp
+- Animated typing indicator (bouncing dots) while waiting
+- Full markdown rendering:
+  - Code blocks with syntax highlighting AND copy button
+  - Bold, italic, strikethrough
+  - Headers (h1-h3)
+  - Bullet/numbered lists
+  - Blockquotes
+  - Horizontal rules
+  - Links
+  - Tables
+- Empty state with logo, tagline, and 6 quick-action buttons
 
-### Task D: Additional Tool Plugins (optional)
-Directory: `friday_ai/tools/core/` or `~/.config/friday/tools/plugins/`
-- Screenshot (using `grim` for Wayland)
-- Bluetooth toggle
-- Audio/volume control (`wpctl` / `pactl`)
-- System info (CPU temp, RAM, battery)
+**Input area:**
+- Mode switcher: 3 pill buttons (Chat | Command | Search)
+  - Chat: normal message
+  - Command: adds context hint for tool use
+  - Search: adds "search " prefix
+- Auto-resizing textarea
+- Send button with icon
+- Keyboard hints: Enter=send, Shift+Enter=newline, Ctrl+L=clear
 
-### Constraints
-- Keep total tools under ~20 for 7B model reliability
-- Port 65535, configurable in config.toml
-- Full spec: `docs/superpowers/specs/2026-04-13-friday-redesign-design.md`
+**Settings panel (slide-out from right or modal):**
+- Show current config values (model, provider_mode, port)
+- Toggle MCP servers on/off (call /mcp/reconnect after changes)
+- Show memory entries (call /memory/list)
+- Show tool list (call /reload)
+- Provider status with health dots
 
-## Hardware
-- Arch Linux, i5-10300H, 8GB RAM, GTX 1650 4GB VRAM
-- Ollama with Qwen 2.5 7B Q4
-- NVMe, ~170GB free on /home
+**Conversation management:**
+- Store in localStorage: {id, title, messages[], createdAt}
+- Title = first user message truncated to 30 chars
+- Load conversation on click
+- Delete with confirmation
+- "New chat" clears current and starts fresh
+
+### Visual Style
+
+**Theme: Dark, premium, NOT flat/boring**
+
+- Background: `#08080f` (very dark blue-black)
+- Surfaces: glass effect — `rgba(255,255,255,0.03)` with `backdrop-filter: blur(20px)`
+- Accent: animated purple gradient `linear-gradient(135deg, #8b5cf6, #6d28d9, #4f46e5)`
+- Borders: `rgba(255,255,255,0.06)`
+- Text primary: `#e8e8f0`
+- Text secondary: `#6b6b8a`
+- User bubble: `rgba(139, 92, 246, 0.08)` with purple border
+- Friday bubble: `rgba(255,255,255,0.03)` glass
+- Code blocks: `#0a0a14` with border, monospace font, copy button top-right
+- Sidebar: slightly lighter surface with glass
+- Animations: subtle `0.2s ease` transitions on everything
+- Hover states on all interactive elements
+- Purple glow (`box-shadow`) on accent elements
+- Scrollbar: thin, matching theme
+
+**Fonts:**
+- Body: `Inter` from Google Fonts
+- Code: `JetBrains Mono` from Google Fonts
+
+**Inspirations:**
+- ChatGPT's clean layout and sidebar
+- Claude's elegant message styling and markdown
+- Discord's dark theme compactness
+- Vercel's glassmorphism aesthetic
+
+### Technical constraints
+- Single HTML file, all CSS+JS embedded
+- No external JS libraries (vanilla JS only)
+- Google Fonts for typography only
+- Must work in Chrome, Firefox, and WebKit (pywebview)
+- API calls to same origin (no CORS issues)
+- Responsive: works at 480px wide (floating window) and full screen
+
+### What NOT to do
+- Don't use any JS framework (React, Vue, etc.)
+- Don't add external dependencies
+- Don't change any backend files
+- Don't use light theme
+- Don't make it look like a prototype or wireframe
+
+## Testing
+
+After editing index.html:
+1. Start backend: `.venv/bin/uvicorn friday_ai.server:app --host 127.0.0.1 --port 65535`
+2. Open `http://127.0.0.1:65535` in browser
+3. Test: send "hello", verify response appears with provider tag
+4. Test: send "run whoami", verify tool calling works
+5. Test: sidebar conversation save/load
+6. Test: settings panel shows providers and tools
+7. Test: code block rendering with copy button
+
+## Project Context
+- Arch Linux, Cosmic DE, GTK-based
+- User: VIT student building this for portfolio + daily use
+- The TUI version will be built separately by Claude Code
+- This browser UI is the secondary interface
+- Keep it impressive — this will be shown to interviewers
