@@ -7,62 +7,42 @@ VERSION="0.1.0"
 
 show_help() {
     cat << 'EOF'
-   ___       _     _
+   ___       _     _            v0.1.0
   | __| _ _ (_) __| | __ _  _  _
   | _| | '_|| |/ _` |/ _` || || |
   |_|  |_|  |_|\__,_|\__,_| \_, |
                              |__/
-  AI System Assistant v0.1.0
 
-COMMANDS:
-  friday                    Show this help
-  friday start              Start backend + CLI chat
-  friday start --daemon     Start in daemon mode (background)
-  friday stop               Stop the daemon and backend
-  friday status             Show what's running
-  friday tui                Launch the TUI
-  friday gui                Launch the floating GUI
-  friday send <prompt>      One-shot prompt via daemon
-  friday tools              List built-in tools (indexed)
-  friday mcp                List MCP servers (indexed, ON/OFF)
-  friday mcp enable <n>     Enable server by number or name
-  friday mcp disable <n>    Disable server by number or name
-  friday mcp info <n>       Show server tools and status
-  friday mcp restart        Reconnect all MCP servers
-  friday models             List/pull/remove Ollama models (indexed)
-  friday models pull <name> Pull a new model
-  friday models rm <n>      Remove model by number or name
-  friday memory             Show memories (indexed)
-  friday memory forget <n>  Forget by number or keyword
-  friday memory clear       Clear all memories
-  friday history            Show conversation history (indexed)
-  friday history load <n>   Load a conversation by number
-  friday history clear      Clear all history
-  friday config             Show current config
-  friday config edit        Open in $EDITOR
-  friday health             Check providers and dependencies
-  friday doctor             Full diagnostic check
-  friday backup             Backup config + memory + history
-  friday restore <file>     Restore from backup
-  friday reset              Reset config to defaults
-  friday update             Self-update (git pull + rebuild)
-  friday logs               Tail backend logs
-  friday completions        Generate shell completions
-  friday version            Show version
+ LAUNCH
+  start                Start Friday (backend + CLI)
+  start --daemon       Daemon mode (background)
+  stop                 Stop everything
+  tui                  Terminal UI
+  gui                  Floating chat window
+  send <prompt>        One-shot prompt (stateless)
 
-SHORTCUTS:
-  friday-tui                Same as 'friday tui'
-  friday-send <prompt>      Same as 'friday send <prompt>'
-  friday-gui                Same as 'friday gui'
+ MANAGE
+  tools                List built-in tools
+  mcp                  List MCP servers          [enable/disable/info/restart]
+  models               Ollama models             [pull/rm]
+  memory               Saved memories            [forget/clear]
+  history              Past conversations        [load/clear]
+  mode                 Provider mode             [fallback/race/google]
+  config               Show config               [edit]
 
-MODES:
-  friday mode               Show current provider mode
-  friday mode fallback      Ollama first, cloud if fails
-  friday mode race          Cloud providers race, fastest wins
-  friday mode google        Open Google AI mode in browser for the query
+ MAINTAIN
+  status               What's running
+  health               Provider check
+  doctor               Full diagnostic
+  backup               Backup config + data
+  restore              Restore from backup
+  reset                Reset to defaults
+  update               Git pull + rebuild
+  logs                 Tail backend logs
+  completions          Shell tab-completion
 
-KEYBINDS:
-  Super+F                   Toggle floating window
+ QUICK (Super+F = floating window)
+  friday-tui            friday-send <prompt>            friday-gui
 
 EOF
 }
