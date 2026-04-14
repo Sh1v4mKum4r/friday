@@ -256,11 +256,13 @@ class ProviderRouter:
         # force_provider path                                                  #
         # ------------------------------------------------------------------ #
         if force_provider is None and self.provider_mode == "race":
-            return await self.race(
+            intent = classify_intent(prompt)
+            return await self.smart_race(
                 prompt=prompt,
                 tools=tools,
                 history=history,
                 system_prompt=system_prompt,
+                intent=intent,
             )
 
         if force_provider is not None:
@@ -378,6 +380,105 @@ class ProviderRouter:
             content="Error: all providers failed during race.",
             provider_name="",
         )
+
+    async def smart_race(
+        self,
+        prompt: str,
+        tools: list[dict] | None,
+        history: list[dict],
+        system_prompt: str = "",
+        intent: str = "unknown",
+    ) -> ProviderResponse:
+        """Intent-aware racing — only race providers that make sense.
+
+        - chat/system → Ollama only (local is fast enough)
+        - complex → race cloud CLIs only (Claude vs Gemini)
+        - search → web_search provider only
+        - dangerous → block
+        - unknown → fallback chain (no race)
+        """
+        if intent in ("chat", "system", "unknown"):
+            # Use Ollama directly, no racing
+            for p in self.providers:
+                if p.name == "ollama" and await p.is_available():
+                    try:
+                        response = await p.send_message(prompt, tools, history, system_prompt)
+                        if response.content or response.tool_calls:
+                            return response
+                    except Exception:
+                        pass
+            # Ollama failed, fall through to fallback
+            return await self._fallback(prompt, tools, history, system_prompt)
+
+        if intent == "complex":
+            # Race only cloud providers (skip Ollama — too slow for complex)
+            cloud = [p for p in self.providers if p.name != "ollama" and p.name != "web_search"]
+            available_cloud = []
+            for p in cloud:
+                if await p.is_available():
+                    available_cloud.append(p)
+
+            if available_cloud:
+                return await self._race_providers(available_cloud, prompt, tools, history, system_prompt)
+            # No cloud available, fall back to Ollama
+            return await self._fallback(prompt, tools, history, system_prompt)
+
+        if intent == "search":
+            ws = self._find_by_name("web_search")
+            if ws and await ws.is_available():
+                return await ws.send_message(prompt, tools, history, system_prompt)
+
+        # Default: fallback chain
+        return await self._fallback(prompt, tools, history, system_prompt)
+
+    async def _race_providers(
+        self,
+        providers: list[BaseProvider],
+        prompt: str,
+        tools: list[dict] | None,
+        history: list[dict],
+        system_prompt: str,
+    ) -> ProviderResponse:
+        """Race a specific set of providers."""
+        async def _call(provider: BaseProvider) -> ProviderResponse:
+            response = await provider.send_message(prompt, tools, history, system_prompt)
+            if not response.content and not response.tool_calls:
+                raise ValueError("Empty response")
+            return response
+
+        tasks = {asyncio.create_task(_call(p)) for p in providers}
+        remaining = set(tasks)
+
+        while remaining:
+            done, remaining = await asyncio.wait(remaining, return_when=asyncio.FIRST_COMPLETED)
+            for task in done:
+                try:
+                    winner = task.result()
+                    for t in remaining:
+                        t.cancel()
+                    return winner
+                except Exception:
+                    continue
+
+        return ProviderResponse(content="Error: all cloud providers failed.", provider_name="")
+
+    async def _fallback(
+        self,
+        prompt: str,
+        tools: list[dict] | None,
+        history: list[dict],
+        system_prompt: str,
+    ) -> ProviderResponse:
+        """Standard fallback chain — try each provider in order."""
+        for provider in self.providers:
+            if await provider.is_available():
+                try:
+                    response = await provider.send_message(prompt, tools, history, system_prompt)
+                    if response.content or response.tool_calls:
+                        return response
+                except Exception:
+                    continue
+        return ProviderResponse(content="Error: no providers available.", provider_name="")
 
     # ---------------------------------------------------------------------- #
     # Private helpers                                                          #
