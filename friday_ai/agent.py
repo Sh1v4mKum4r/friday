@@ -93,15 +93,10 @@ class Agent:
         identity = load_identity(self.config_dir)
         memory_context = self.memory.get_context_for_prompt(query=message)
 
-        # Combine built-in + MCP tool descriptions and schemas
-        tools_desc = self.tool_loader.get_tools_description()
-        tool_schemas = self.tool_loader.get_tool_schemas()
-
-        if self.mcp_manager and self.mcp_manager.tools:
-            mcp_desc = self.mcp_manager.get_tools_description()
-            if mcp_desc:
-                tools_desc += "\n" + mcp_desc
-            tool_schemas.extend(self.mcp_manager.get_tool_schemas())
+        # Smart tool filtering — only send relevant tools to keep LLM fast
+        intent = classify_intent(message)
+        tool_schemas = self._filter_tools(intent, message)
+        tools_desc = self._tools_desc_from_schemas(tool_schemas)
 
         system_prompt = build_system_prompt(identity, tools_desc, memory_context)
 
@@ -181,6 +176,59 @@ class Agent:
             content="Error: max tool rounds exceeded with no response.",
             provider_name="",
         )
+
+    # ------------------------------------------------------------------
+    # Smart tool filtering
+    # ------------------------------------------------------------------
+
+    # Always include these core tools (small, general-purpose)
+    _CORE_TOOLS = {"run_shell", "memory_save", "notify", "file_read", "file_write", "web_search"}
+
+    # Intent → additional tools to include
+    _INTENT_TOOLS: dict[str, set[str]] = {
+        "system": {"de_command", "brightness", "volume", "media", "screenshot",
+                   "clipboard_get", "clipboard_set", "cron", "sysinfo", "bluetooth"},
+        "complex": set(),  # core tools + LLM reasoning is enough
+        "search": {"web_search"},
+        "chat": set(),  # no tools needed for greetings
+        "dangerous": set(),
+        "unknown": {"run_shell", "sysinfo", "web_search"},
+    }
+
+    def _filter_tools(self, intent: str, message: str) -> list[dict]:
+        """Return only the tool schemas relevant to the detected intent.
+
+        This keeps the prompt small and the LLM fast — a 7B model with
+        5 tools responds 3-5x faster than with 19.
+        """
+        allowed = self._CORE_TOOLS | self._INTENT_TOOLS.get(intent, set())
+
+        # If message explicitly mentions a tool name, include it
+        msg_lower = message.lower()
+        all_schemas = self.tool_loader.get_tool_schemas()
+        for schema in all_schemas:
+            tool_name = schema["function"]["name"]
+            if tool_name in msg_lower:
+                allowed.add(tool_name)
+
+        # Filter schemas
+        filtered = [s for s in all_schemas if s["function"]["name"] in allowed]
+
+        # Add MCP tools if manager has any
+        if self.mcp_manager and self.mcp_manager.tools:
+            filtered.extend(self.mcp_manager.get_tool_schemas())
+
+        return filtered
+
+    def _tools_desc_from_schemas(self, schemas: list[dict]) -> str:
+        """Build a tool description string from filtered schemas."""
+        lines = []
+        for s in schemas:
+            fn = s["function"]
+            params = ", ".join(f"{k}: {v.get('type', 'str')}"
+                               for k, v in fn.get("parameters", {}).get("properties", {}).items())
+            lines.append(f"- {fn['name']}({params}): {fn.get('description', '')}")
+        return "\n".join(lines)
 
     def get_context_dump(self) -> str:
         """Return a formatted string showing the current system prompt and
