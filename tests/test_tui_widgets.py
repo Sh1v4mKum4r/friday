@@ -168,3 +168,78 @@ class TestSidebar:
         async with MessageTestApp(widget).run_test() as pilot:
             sidebar = pilot.app.query_one(Sidebar)
             assert sidebar.has_class("hidden")
+
+
+from friday_ai.tui.widgets.telemetry import TelemetryPanel
+
+
+class TestTelemetryPanel:
+    @pytest.mark.asyncio
+    async def test_renders(self):
+        widget = TelemetryPanel()
+        async with MessageTestApp(widget).run_test() as pilot:
+            panel = pilot.app.query_one(TelemetryPanel)
+            assert panel is not None
+
+    @pytest.mark.asyncio
+    async def test_update_health(self):
+        widget = TelemetryPanel()
+        async with MessageTestApp(widget).run_test() as pilot:
+            panel = pilot.app.query_one(TelemetryPanel)
+            panel.update_health({
+                "status": "online",
+                "providers": ["ollama", "claude"],
+            })
+            assert panel.providers == ["ollama", "claude"]
+
+    @pytest.mark.asyncio
+    async def test_update_mcp(self):
+        widget = TelemetryPanel()
+        async with MessageTestApp(widget).run_test() as pilot:
+            panel = pilot.app.query_one(TelemetryPanel)
+            panel.update_mcp({
+                "servers": ["dev", "files"],
+                "tools": [
+                    {"name": "git_status", "server": "dev"},
+                    {"name": "find_files", "server": "files"},
+                ],
+            })
+            assert len(panel.mcp_servers) == 2
+
+    @pytest.mark.asyncio
+    async def test_update_last_response(self):
+        widget = TelemetryPanel()
+        async with MessageTestApp(widget).run_test() as pilot:
+            panel = pilot.app.query_one(TelemetryPanel)
+            panel.update_last_response("ollama", "qwen2.5:7b", 0.84)
+            assert panel.active_provider == "ollama"
+            assert panel.active_model == "qwen2.5:7b"
+            assert panel.last_latency == 0.84
+
+
+from friday_ai.tui.widgets.code_block import CodeBlock
+
+
+class TestCodeBlock:
+    @pytest.mark.asyncio
+    async def test_renders(self):
+        widget = CodeBlock(code="print('hello')", language="python")
+        async with MessageTestApp(widget).run_test() as pilot:
+            block = pilot.app.query_one(CodeBlock)
+            assert block.code == "print('hello')"
+            assert block.language == "python"
+
+    @pytest.mark.asyncio
+    async def test_collapsed_when_long(self):
+        long_code = "\n".join(f"line {i}" for i in range(60))
+        widget = CodeBlock(code=long_code, language="python")
+        async with MessageTestApp(widget).run_test() as pilot:
+            block = pilot.app.query_one(CodeBlock)
+            assert block.is_collapsed is True
+
+    @pytest.mark.asyncio
+    async def test_not_collapsed_when_short(self):
+        widget = CodeBlock(code="x = 1", language="python")
+        async with MessageTestApp(widget).run_test() as pilot:
+            block = pilot.app.query_one(CodeBlock)
+            assert block.is_collapsed is False
