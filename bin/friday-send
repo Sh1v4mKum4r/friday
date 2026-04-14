@@ -22,5 +22,22 @@ if [ -z "$PROMPT" ]; then
     exit 1
 fi
 
-# Send to socket, read response
-echo "$PROMPT" | socat - UNIX-CONNECT:"$SOCKET"
+# Send to socket and read response using Python for reliable timeout handling
+python3 -c "
+import socket, os, sys
+sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+sock.connect('$SOCKET')
+sock.sendall(sys.argv[1].encode() + b'\n')
+sock.settimeout(120)
+data = b''
+while True:
+    try:
+        chunk = sock.recv(4096)
+        if not chunk:
+            break
+        data += chunk
+    except socket.timeout:
+        break
+sock.close()
+print(data.decode().strip())
+" "$PROMPT"

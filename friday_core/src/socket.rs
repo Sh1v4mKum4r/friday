@@ -48,8 +48,11 @@ async fn handle_connection(stream: tokio::net::UnixStream, host: &str, port: u16
 
     let client = FridayClient::new(host, port);
 
+    eprintln!("[socket] Forwarding prompt to backend: {}", &prompt);
+
     match client.chat(&prompt, None).await {
         Ok(resp) => {
+            eprintln!("[socket] Got response ({} chars) from {}", resp.response.len(), resp.provider);
             // Send notification
             let _ = std::process::Command::new("notify-send")
                 .arg("Friday")
@@ -59,15 +62,18 @@ async fn handle_connection(stream: tokio::net::UnixStream, host: &str, port: u16
             // Write response back to socket
             let _ = writer.write_all(resp.response.as_bytes()).await;
             let _ = writer.write_all(b"\n").await;
+            let _ = writer.flush().await;
         }
         Err(e) => {
             let err = format!("Error: {}", e);
+            eprintln!("[socket] Error: {}", &err);
             let _ = std::process::Command::new("notify-send")
                 .arg("Friday Error")
                 .arg(&err)
                 .spawn();
             let _ = writer.write_all(err.as_bytes()).await;
             let _ = writer.write_all(b"\n").await;
+            let _ = writer.flush().await;
         }
     }
 }
