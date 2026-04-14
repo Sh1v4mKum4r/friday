@@ -153,29 +153,44 @@ ModeBar {
     scrollbar-background: #0e0e14;
 }
 
+MessageWidget {
+    height: auto;
+}
+
 .msg-user {
     background: #131319;
     color: #e0f0ff;
-    margin: 1 4 0 20;
+    height: auto;
+    margin: 1 2 0 30;
     padding: 1 2;
-    border: round #25252e;
 }
 
 .msg-assistant {
     background: #1b1b21;
     color: #e0f0ff;
-    margin: 1 20 0 4;
+    height: auto;
+    margin: 1 30 0 2;
     padding: 1 2;
     border-left: thick #69daff;
+}
+
+.msg-header {
+    height: 1;
 }
 
 .msg-user .timestamp {
     color: #6a8a94;
     text-align: right;
+    height: 1;
 }
 
 .msg-assistant .timestamp {
     color: #6a8a94;
+    height: 1;
+}
+
+#msg-body {
+    height: auto;
 }
 
 .provider-tag {
@@ -183,10 +198,12 @@ ModeBar {
     color: #0e0e14;
     padding: 0 1;
     text-style: bold;
+    height: 1;
 }
 
 .latency-tag {
     color: #6a8a94;
+    height: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════

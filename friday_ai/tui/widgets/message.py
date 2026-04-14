@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Label, Markdown
+from textual.widgets import Label, Static
 
 
 class MessageWidget(Widget):
     """A single chat message — user or assistant."""
+
+    DEFAULT_CSS = """
+    MessageWidget {
+        height: auto;
+        width: 100%;
+    }
+    """
 
     content: reactive[str] = reactive("", layout=True)
 
@@ -32,24 +39,22 @@ class MessageWidget(Widget):
         self.add_class(f"msg-{role}")
 
     def compose(self) -> ComposeResult:
-        with Vertical():
-            if self.role == "assistant":
-                with Horizontal(classes="msg-header"):
-                    if self.provider:
-                        yield Label(f" {self.provider.upper()} ", classes="provider-tag")
-                    yield Label(f" {self.timestamp}", classes="timestamp")
-            yield Markdown(self.content, id="msg-body")
-            if self.role == "user":
-                with Horizontal(classes="msg-footer"):
-                    yield Label(f"{self.timestamp} ", classes="timestamp")
-            elif self.latency > 0:
-                yield Label(f"{self.latency:.2f}s", classes="latency-tag")
+        if self.role == "assistant":
+            with Horizontal(classes="msg-header"):
+                if self.provider:
+                    yield Label(f" {self.provider.upper()} ", classes="provider-tag")
+                yield Label(f" {self.timestamp}", classes="timestamp")
+        yield Static(self.content, id="msg-body", markup=False)
+        if self.role == "user":
+            yield Label(f"{self.timestamp}", classes="timestamp")
+        elif self.latency > 0:
+            yield Label(f"{self.latency:.2f}s", classes="latency-tag")
 
     def watch_content(self, new_content: str) -> None:
-        """Update the Markdown widget when content changes."""
+        """Update the body when content changes."""
         try:
-            md = self.query_one("#msg-body", Markdown)
-            md.update(new_content)
+            body = self.query_one("#msg-body", Static)
+            body.update(new_content)
         except Exception:
             pass
 
