@@ -207,17 +207,17 @@ class Agent:
     # ------------------------------------------------------------------
 
     # Always include these core tools (small, general-purpose)
-    _CORE_TOOLS = {"run_shell", "memory_save", "notify", "file_read", "file_write", "web_search"}
+    _CORE_TOOLS = {"run_shell", "memory_save", "file_read"}
 
     # Intent → additional tools to include
     _INTENT_TOOLS: dict[str, set[str]] = {
-        "system": {"de_command", "brightness", "volume", "media", "screenshot",
-                   "clipboard_get", "clipboard_set", "cron", "sysinfo", "bluetooth"},
-        "complex": set(),  # core tools + LLM reasoning is enough
+        "system": {"de_command", "brightness", "volume", "media",
+                   "clipboard_get", "clipboard_set", "cron", "sysinfo", "notify"},
+        "complex": {"ask_cloud"},  # delegate to cloud
         "search": {"web_search"},
         "chat": {"__none__"},  # special: send NO tools for greetings
         "dangerous": set(),
-        "unknown": {"run_shell", "sysinfo", "web_search"},
+        "unknown": {"ask_cloud", "web_search", "notify"},
     }
 
     def _filter_tools(self, intent: str, message: str) -> list[dict]:
