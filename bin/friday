@@ -142,7 +142,8 @@ case "${1:-}" in
 
     send)
         shift
-        exec "$FRIDAY_DIR/bin/friday-send" "$@"
+        "$FRIDAY_DIR/bin/friday-send" "$@"
+        exit $?
         ;;
 
     # -------------------------------------------------------------------
