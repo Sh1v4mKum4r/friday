@@ -235,6 +235,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
                 message=request.message,
                 force_provider=request.force_provider,
                 race=request.race,
+                stateless=request.stateless,
             )
         finally:
             if saved_history is not None:

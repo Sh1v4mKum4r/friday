@@ -65,6 +65,7 @@ class Agent:
         message: str,
         force_provider: str | None = None,
         race: bool = False,
+        stateless: bool = False,
     ) -> ProviderResponse:
         """Send *message* through the agent and return the final response.
 
@@ -105,8 +106,13 @@ class Agent:
 
         # Smart tool filtering — only send relevant tools to keep LLM fast
         intent = classify_intent(message)
-        tool_schemas = self._filter_tools(intent, message)
-        tools_desc = self._tools_desc_from_schemas(tool_schemas)
+        if stateless:
+            # Stateless mode: no tools, just answer the question directly
+            tool_schemas = []
+            tools_desc = ""
+        else:
+            tool_schemas = self._filter_tools(intent, message)
+            tools_desc = self._tools_desc_from_schemas(tool_schemas)
 
         # Select Ollama model based on intent (fast 3B for simple, heavy 7B for complex)
         self._select_ollama_model(intent)
