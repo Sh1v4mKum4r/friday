@@ -288,35 +288,35 @@ MessageWidget {
    SETTINGS SCREEN
    ═══════════════════════════════════════════════════════════ */
 
-#settings-screen {
-    background: #0e0d15;
-    height: 100%;
-    width: 100%;
-}
-
-#settings-header {
+#settings-title {
+    dock: top;
     height: 1;
     background: #13131b;
-    padding: 0 2;
+    color: #ba9eff;
+    text-style: bold;
+    padding: 0 1;
     border-bottom: hkey #252530;
 }
 
+#mode-toggle-label {
+    dock: top;
+    height: 1;
+    background: #13131b;
+    padding: 0 2;
+    text-align: right;
+}
+
 #settings-tabs {
+    dock: top;
     height: 1;
     background: #0e0d15;
+    color: #8a8694;
     padding: 0 1;
+    border-bottom: hkey #252530;
 }
 
 #settings-fields {
     background: #0e0d15;
-}
-
-#settings-footer {
-    height: 1;
-    background: #13131b;
-    padding: 0 2;
-    dock: bottom;
-    border-top: hkey #252530;
 }
 
 .settings-tab-active {

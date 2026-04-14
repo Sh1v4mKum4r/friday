@@ -88,22 +88,23 @@ class SettingsScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Footer()
-        with Vertical(id="settings-screen"):
-            with Horizontal(id="settings-header"):
-                yield Label(" FRIDAY SETTINGS", classes="settings-label")
-                mode_label = "[a] Advanced" if self.settings_mode == "simple" else "[a] Simple"
-                yield Label(mode_label, id="mode-toggle-label", classes="settings-value")
-            if self.settings_mode == "advanced":
-                yield self._compose_tabs()
-            yield VerticalScroll(id="settings-fields")
+        yield Label(" FRIDAY SETTINGS", id="settings-title", classes="settings-label")
+        mode_label = "[a] Advanced" if self.settings_mode == "simple" else "[a] Simple"
+        yield Label(mode_label, id="mode-toggle-label", classes="settings-value")
+        if self.settings_mode == "advanced":
+            yield self._make_tab_bar()
+        yield VerticalScroll(id="settings-fields")
 
-    def _compose_tabs(self) -> Horizontal:
+    def _make_tab_bar(self) -> Label:
+        """Build a single label showing all tabs with the active one highlighted."""
         tabs = ["GENERAL", "PROVIDER", "MCP", "TOOLS", "MEMORY", "IDENTITY", "APPEARANCE", "KEYBINDS"]
-        container = Horizontal(id="settings-tabs")
+        parts = []
         for i, tab in enumerate(tabs):
-            cls = "settings-tab-active" if i == self._active_tab else "settings-tab-inactive"
-            container.compose_add_child(Label(f" {tab} ", classes=cls, id=f"tab-{i}"))
-        return container
+            if i == self._active_tab:
+                parts.append(f"[bold][ {tab} ][/bold]")
+            else:
+                parts.append(f"  {tab}  ")
+        return Label(" ".join(parts), id="settings-tabs", markup=True)
 
     def on_mount(self) -> None:
         self._rebuild_fields()
@@ -246,19 +247,19 @@ class SettingsScreen(Screen):
 
     def action_toggle_mode(self) -> None:
         self.toggle_advanced()
-        self._rebuild_all()
+        self.call_after_refresh(self._rebuild_all)
 
     def action_next_tab(self) -> None:
         if self.settings_mode == "advanced":
             self._active_tab = (self._active_tab + 1) % 8
             self._selected_idx = 0
-            self._rebuild_all()
+            self.call_after_refresh(self._rebuild_all)
 
     def action_prev_tab(self) -> None:
         if self.settings_mode == "advanced":
             self._active_tab = (self._active_tab - 1) % 8
             self._selected_idx = 0
-            self._rebuild_all()
+            self.call_after_refresh(self._rebuild_all)
 
     def action_save(self) -> None:
         fields = self._get_fields()
@@ -274,7 +275,30 @@ class SettingsScreen(Screen):
         self.notify("Modified — press s to save", timeout=2)
 
     def _rebuild_all(self) -> None:
-        self.remove_children()
-        for child in self.compose():
-            self.mount(child)
+        """Rebuild the settings screen content without re-composing."""
+        # Update the mode toggle label
+        try:
+            label = self.query_one("#mode-toggle-label", Label)
+            mode_label = "[a] Advanced" if self.settings_mode == "simple" else "[a] Simple"
+            label.update(mode_label)
+        except Exception:
+            pass
+
+        # Remove old tab bar if exists
+        try:
+            old_tabs = self.query_one("#settings-tabs")
+            old_tabs.remove()
+        except Exception:
+            pass
+
+        # Add tab bar for advanced mode
+        if self.settings_mode == "advanced":
+            tab_bar = self._make_tab_bar()
+            try:
+                fields = self.query_one("#settings-fields")
+                self.mount(tab_bar, before=fields)
+            except Exception:
+                pass
+
+        # Rebuild the field list
         self._rebuild_fields()
