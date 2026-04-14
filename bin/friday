@@ -1,12 +1,222 @@
 #!/usr/bin/env bash
-# Friday TUI — launch the terminal interface
+# friday — main entry point for Friday AI assistant
 set -euo pipefail
 
 FRIDAY_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+VERSION="0.1.0"
 
-# Activate venv if it exists
+show_help() {
+    cat << 'EOF'
+   ___       _     _
+  | __| _ _ (_) __| | __ _  _  _
+  | _| | '_|| |/ _` |/ _` || || |
+  |_|  |_|  |_|\__,_|\__,_| \_, |
+                             |__/
+  AI System Assistant v0.1.0
+
+COMMANDS:
+  friday                    Show this help
+  friday start              Start backend + CLI chat
+  friday start --daemon     Start backend in daemon mode (background)
+  friday stop               Stop the daemon and backend
+  friday status             Show if Friday is running, which providers are up
+  friday tui                Launch the TUI interface
+  friday gui                Launch the floating GUI window
+  friday send <prompt>      Send a one-shot prompt to the daemon
+  friday tools              List all available tools
+  friday tools enable <t>   Enable an MCP server
+  friday tools disable <t>  Disable an MCP server
+  friday memory             Show saved memories
+  friday memory forget <k>  Forget memories matching keyword
+  friday config             Show current config
+  friday config edit        Open config.toml in $EDITOR
+  friday health             Check backend and provider status
+  friday logs               Tail the backend logs
+  friday version            Show version
+
+SHORTCUTS:
+  friday-tui                Same as 'friday tui'
+  friday-send <prompt>      Same as 'friday send <prompt>'
+  friday-gui                Same as 'friday gui'
+
+KEYBINDS:
+  Super+F                   Toggle floating window
+
+EOF
+}
+
+# Activate venv
 if [ -f "$FRIDAY_DIR/.venv/bin/activate" ]; then
     source "$FRIDAY_DIR/.venv/bin/activate"
 fi
 
-exec python -m friday_ai.tui "$@"
+PORT=65535
+API="http://127.0.0.1:$PORT"
+DATA_DIR="$HOME/.local/share/friday"
+CONFIG_DIR="$HOME/.config/friday"
+
+case "${1:-}" in
+    start)
+        shift
+        exec "$FRIDAY_DIR/start.sh" "$@"
+        ;;
+
+    stop)
+        echo "Stopping Friday..."
+        kill $(lsof -ti:$PORT) 2>/dev/null && echo "Backend stopped." || echo "Backend not running."
+        pkill -f "friday_core.*--daemon" 2>/dev/null && echo "Daemon stopped." || echo "Daemon not running."
+        rm -f "${XDG_RUNTIME_DIR:-/tmp}/friday.sock"
+        ;;
+
+    status)
+        echo -n "Backend: "
+        if curl -s "$API/health" > /dev/null 2>&1; then
+            HEALTH=$(curl -s "$API/health")
+            echo "ONLINE"
+            echo "  Providers: $(echo "$HEALTH" | python3 -c "import sys,json; print(', '.join(json.load(sys.stdin)['providers']))")"
+        else
+            echo "OFFLINE"
+        fi
+        echo -n "Daemon socket: "
+        [ -S "${XDG_RUNTIME_DIR:-/tmp}/friday.sock" ] && echo "ACTIVE" || echo "INACTIVE"
+        echo -n "Ollama: "
+        curl -s http://localhost:11434/api/tags > /dev/null 2>&1 && echo "RUNNING" || echo "NOT RUNNING"
+        ;;
+
+    tui)
+        shift
+        exec python -m friday_ai.tui "$@"
+        ;;
+
+    gui)
+        exec "$FRIDAY_DIR/bin/friday-hotkey"
+        ;;
+
+    send)
+        shift
+        exec "$FRIDAY_DIR/bin/friday-send" "$@"
+        ;;
+
+    tools)
+        shift
+        case "${1:-}" in
+            enable)
+                SERVER="friday-${2:-}"
+                python3 -c "
+import json
+with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
+if '$SERVER' in data['servers']:
+    data['servers']['$SERVER']['enabled'] = True
+    with open('$CONFIG_DIR/mcp_servers.json', 'w') as f: json.dump(data, f, indent=2)
+    print('Enabled: $SERVER')
+else:
+    print('Not found: $SERVER')
+    print('Available:', ', '.join(data['servers'].keys()))
+"
+                ;;
+            disable)
+                SERVER="friday-${2:-}"
+                python3 -c "
+import json
+with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
+if '$SERVER' in data['servers']:
+    data['servers']['$SERVER']['enabled'] = False
+    with open('$CONFIG_DIR/mcp_servers.json', 'w') as f: json.dump(data, f, indent=2)
+    print('Disabled: $SERVER')
+else:
+    print('Not found: $SERVER')
+"
+                ;;
+            *)
+                if curl -s "$API/health" > /dev/null 2>&1; then
+                    echo "Built-in tools:"
+                    curl -s -X POST "$API/reload" | python3 -c "import sys,json; [print(f'  {t}') for t in json.load(sys.stdin)['tools']]"
+                    echo ""
+                    echo "MCP servers:"
+                    python3 -c "
+import json
+with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
+for name, cfg in data['servers'].items():
+    status = 'ON ' if cfg['enabled'] else 'OFF'
+    print(f'  [{status}] {name}')
+"
+                else
+                    echo "Backend offline. Showing MCP config only:"
+                    python3 -c "
+import json
+with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
+for name, cfg in data['servers'].items():
+    status = 'ON ' if cfg['enabled'] else 'OFF'
+    print(f'  [{status}] {name}')
+"
+                fi
+                ;;
+        esac
+        ;;
+
+    memory)
+        shift
+        case "${1:-}" in
+            forget)
+                shift
+                curl -s -X POST "$API/memory/forget?keyword=$*" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Forgot: {d[\"forgot\"]}')"
+                ;;
+            clear)
+                curl -s -X POST "$API/memory/clear" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])"
+                ;;
+            *)
+                if curl -s "$API/health" > /dev/null 2>&1; then
+                    curl -s -X POST "$API/memory/list" | python3 -c "
+import sys,json
+entries = json.load(sys.stdin)['entries']
+if entries:
+    for e in entries: print(f'  - {e}')
+else:
+    print('  (empty)')
+"
+                else
+                    echo "Memories (from file):"
+                    cat "$HOME/.local/share/friday/memory/MEMORY.md" 2>/dev/null || echo "  (empty)"
+                fi
+                ;;
+        esac
+        ;;
+
+    config)
+        shift
+        case "${1:-}" in
+            edit)
+                ${EDITOR:-nvim} "$CONFIG_DIR/config.toml"
+                ;;
+            *)
+                cat "$CONFIG_DIR/config.toml"
+                ;;
+        esac
+        ;;
+
+    health)
+        curl -s "$API/health" 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "Backend offline."
+        ;;
+
+    logs)
+        tail -f "$DATA_DIR/uvicorn.log" 2>/dev/null || echo "No log file found."
+        ;;
+
+    version)
+        echo "Friday v$VERSION"
+        ;;
+
+    help|--help|-h)
+        show_help
+        ;;
+
+    "")
+        show_help
+        ;;
+
+    *)
+        echo "Unknown command: $1"
+        echo "Run 'friday' for help."
+        exit 1
+        ;;
+esac
