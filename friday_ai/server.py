@@ -54,6 +54,7 @@ class ChatRequest(BaseModel):
     message: str
     force_provider: str | None = None
     race: bool = False
+    stateless: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -217,11 +218,24 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     @app.post("/chat", response_model=ChatResponse)
     async def chat(request: ChatRequest):
         """Send a message to the agent and return the response."""
-        result = await app.state.agent.chat(
-            message=request.message,
-            force_provider=request.force_provider,
-            race=request.race,
-        )
+        agent = app.state.agent
+
+        # Stateless mode: save history, clear it, run, restore
+        saved_history = None
+        if request.stateless:
+            saved_history = agent.history[:]
+            agent.history = []
+
+        try:
+            result = await agent.chat(
+                message=request.message,
+                force_provider=request.force_provider,
+                race=request.race,
+            )
+        finally:
+            if saved_history is not None:
+                agent.history = saved_history
+
         return ChatResponse(response=result.content, provider=result.provider_name)
 
     @app.post("/chat/stream")
