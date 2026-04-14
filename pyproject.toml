@@ -24,6 +24,15 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "httpx>=0.28.0",
 ]
+tui = [
+    "textual>=1.0.0",
+]
+stream = [
+    "sse-starlette>=2.0.0",
+]
+
+[project.scripts]
+friday-tui = "friday_ai.tui:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
