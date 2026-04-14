@@ -23,9 +23,12 @@ COMMANDS:
   friday tui                Launch the TUI
   friday gui                Launch the floating GUI
   friday send <prompt>      One-shot prompt via daemon
-  friday tools              List tools + MCP servers (indexed)
-  friday tools enable <n>   Enable MCP server by number or name
-  friday tools disable <n>  Disable MCP server by number or name
+  friday tools              List built-in tools (indexed)
+  friday mcp                List MCP servers (indexed, ON/OFF)
+  friday mcp enable <n>     Enable server by number or name
+  friday mcp disable <n>    Disable server by number or name
+  friday mcp info <n>       Show server tools and status
+  friday mcp restart        Reconnect all MCP servers
   friday models             List/pull/remove Ollama models (indexed)
   friday models pull <name> Pull a new model
   friday models rm <n>      Remove model by number or name
@@ -145,6 +148,27 @@ case "${1:-}" in
     # -------------------------------------------------------------------
     tools)
         shift
+        echo "Built-in tools:"
+        if curl -s "$API/health" > /dev/null 2>&1; then
+            curl -s -X POST "$API/reload" | python3 -c "
+import sys,json
+d = json.load(sys.stdin)
+tools = d['tools']
+names = sorted(t if isinstance(t, str) else t.get('name', str(t)) for t in tools)
+for i, t in enumerate(names, 1):
+    print(f'  [{i:2}] {t}')
+print(f'\n  Total: {len(names)} tools')
+"
+        else
+            echo "  (backend offline — start with: friday start)"
+        fi
+        echo ""
+        echo "  See also: friday mcp"
+        ;;
+
+    # -------------------------------------------------------------------
+    mcp)
+        shift
         case "${1:-}" in
             enable)
                 shift
@@ -153,16 +177,11 @@ import json, sys
 with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
 names = list(data['servers'].keys())
 sel = '$*'
-# Support index
 if sel.isdigit():
     idx = int(sel) - 1
-    if 0 <= idx < len(names):
-        sel = names[idx]
-    else:
-        print(f'Invalid index: {int(sel)}'); sys.exit(1)
-# Support short name (without friday- prefix)
-if sel and not sel.startswith('friday-'):
-    sel = 'friday-' + sel
+    if 0 <= idx < len(names): sel = names[idx]
+    else: print(f'Invalid index: {int(sel)}'); sys.exit(1)
+if sel and not sel.startswith('friday-'): sel = 'friday-' + sel
 if sel in data['servers']:
     data['servers'][sel]['enabled'] = True
     with open('$CONFIG_DIR/mcp_servers.json', 'w') as f: json.dump(data, f, indent=2)
@@ -192,32 +211,82 @@ else:
     print(f'Not found: {sel}')
 "
                 ;;
-            *)
-                echo "Built-in tools:"
+            info)
+                shift
+                python3 -c "
+import json, sys, importlib.util
+with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
+names = list(data['servers'].keys())
+sel = '$*'
+if sel.isdigit():
+    idx = int(sel) - 1
+    if 0 <= idx < len(names): sel = names[idx]
+    else: print(f'Invalid index: {int(sel)}'); sys.exit(1)
+if sel and not sel.startswith('friday-'): sel = 'friday-' + sel
+if sel not in data['servers']:
+    print(f'Not found: {sel}'); sys.exit(1)
+cfg = data['servers'][sel]
+status = '\033[32mENABLED\033[0m' if cfg['enabled'] else '\033[31mDISABLED\033[0m'
+print(f'Server: {sel}')
+print(f'Status: {status}')
+print(f'Command: {cfg[\"command\"]} {\" \".join(cfg[\"args\"])}')
+# Extract tool names from source file
+try:
+    script = cfg['args'][-1]
+    import re
+    source = open(script).read()
+    # Find Tool(name='...' or name='...' patterns
+    tools = re.findall(r'name[=:]\s*[\"\\']([a-z_]+)[\"\\']', source)
+    # Deduplicate and filter (skip 'friday-*' server names)
+    seen = set()
+    tool_list = []
+    for t in tools:
+        if t not in seen and not t.startswith('friday') and len(t) > 2:
+            seen.add(t)
+            tool_list.append(t)
+    if tool_list:
+        print(f'Tools ({len(tool_list)}):')
+        for i, t in enumerate(tool_list, 1):
+            print(f'  [{i}] {t}')
+    else:
+        print('Tools: (none found)')
+except Exception as e:
+    print(f'Could not read tools: {e}')
+"
+                ;;
+            restart|reconnect)
                 if curl -s "$API/health" > /dev/null 2>&1; then
-                    curl -s -X POST "$API/reload" | python3 -c "
+                    echo "Reconnecting MCP servers..."
+                    curl -s -X POST "$API/mcp/reconnect" | python3 -c "
 import sys,json
 d = json.load(sys.stdin)
-tools = d['tools']
-# Handle both string list and dict list
-names = sorted(t if isinstance(t, str) else t.get('name', str(t)) for t in tools)
-for i, t in enumerate(names, 1):
-    print(f'  [{i:2}] {t}')
-print(f'\n  Total: {len(names)} tools')
+connected = d.get('connected', [])
+if connected:
+    for s in connected: print(f'  Connected: {s}')
+else:
+    print('  No servers connected.')
 "
                 else
-                    echo "  (backend offline)"
+                    echo "Backend offline."
                 fi
-                echo ""
-                echo "MCP servers:"
+                ;;
+            *)
+                echo "MCP Servers:"
                 python3 -c "
 import json
 with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
+on = 0; off = 0
 for i, (name, cfg) in enumerate(data['servers'].items(), 1):
-    status = '\033[32mON \033[0m' if cfg['enabled'] else '\033[31mOFF\033[0m'
+    enabled = cfg['enabled']
+    status = '\033[32mON \033[0m' if enabled else '\033[31mOFF\033[0m'
     short = name.replace('friday-', '')
-    print(f'  [{i:2}] {status} {short:15} ({name})')
-print(f'\n  Use: friday tools enable <number>')
+    print(f'  [{i:2}] {status} {short}')
+    if enabled: on += 1
+    else: off += 1
+print(f'\n  {on} enabled, {off} disabled')
+print(f'  Use: friday mcp enable <number>')
+print(f'  Use: friday mcp info <number>')
+print(f'  Use: friday mcp restart')
 "
                 ;;
         esac
@@ -581,7 +650,8 @@ print(f'\n  Use: friday history load <number>')
 # eval "$(friday completions)"
 
 _friday_completions() {
-    local commands="start stop status tui gui send tools models memory history config health doctor backup restore reset update logs completions version help"
+    local commands="start stop status tui gui send tools mcp models memory history config health doctor backup restore reset update logs completions version help"
+    local mcp_sub="enable disable info restart"
     local tools_sub="enable disable"
     local models_sub="pull rm"
     local memory_sub="forget clear"
@@ -593,6 +663,7 @@ _friday_completions() {
     elif [ "${#COMP_WORDS[@]}" -eq 3 ]; then
         case "${COMP_WORDS[1]}" in
             tools) COMPREPLY=($(compgen -W "$tools_sub" -- "${COMP_WORDS[2]}")) ;;
+            mcp) COMPREPLY=($(compgen -W "$mcp_sub" -- "${COMP_WORDS[2]}")) ;;
             models) COMPREPLY=($(compgen -W "$models_sub" -- "${COMP_WORDS[2]}")) ;;
             memory) COMPREPLY=($(compgen -W "$memory_sub" -- "${COMP_WORDS[2]}")) ;;
             history) COMPREPLY=($(compgen -W "$history_sub" -- "${COMP_WORDS[2]}")) ;;
