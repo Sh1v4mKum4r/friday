@@ -30,16 +30,21 @@ case "${1:-}" in
         echo $! > "$XVFB_PIDFILE"
         sleep 1
 
-        echo "Starting Chrome on :$DISPLAY_NUM..."
-        DISPLAY=:$DISPLAY_NUM $CHROME_BIN \
+        echo "Starting Chrome on :$DISPLAY_NUM (X11 mode)..."
+        # Force X11 backend + use virtual display, unset Wayland vars
+        env \
+            DISPLAY=:$DISPLAY_NUM \
+            WAYLAND_DISPLAY="" \
+            XDG_SESSION_TYPE=x11 \
+            $CHROME_BIN \
             --no-first-run \
             --disable-sync \
             --disable-gpu \
-            --no-sandbox \
+            --disable-software-rasterizer \
             --user-data-dir="$CHROME_PROFILE" \
-            --disable-extensions-except="" \
-            --load-extension="" \
-            &
+            --disable-features=WaylandWindowDecorations \
+            --ozone-platform=x11 \
+            >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
 
         echo "Chrome bridge running."
