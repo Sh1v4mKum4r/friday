@@ -38,18 +38,18 @@ class GoogleAIProvider(BaseProvider):
         history: list[dict],
         system_prompt: str = "",
     ) -> ProviderResponse:
-        # Try SerpAPI first (if key available)
+        # Try free AI Mode API first (saves SerpAPI quota)
+        result = await self._try_aimodeapi(prompt)
+        if result:
+            return result
+
+        # Fall back to SerpAPI (if key available)
         if self.serpapi_key:
             result = await self._try_serpapi(prompt)
             if result:
                 return result
 
-        # Try AI Mode API (free, no key)
-        result = await self._try_aimodeapi(prompt)
-        if result:
-            return result
-
-        # Fallback: open browser
+        # Last resort: open browser
         return self._fallback_browser(prompt)
 
     async def _try_serpapi(self, prompt: str) -> ProviderResponse | None:
