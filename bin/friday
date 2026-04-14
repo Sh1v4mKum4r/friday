@@ -17,21 +17,34 @@ show_help() {
 COMMANDS:
   friday                    Show this help
   friday start              Start backend + CLI chat
-  friday start --daemon     Start backend in daemon mode (background)
+  friday start --daemon     Start in daemon mode (background)
   friday stop               Stop the daemon and backend
-  friday status             Show if Friday is running, which providers are up
-  friday tui                Launch the TUI interface
-  friday gui                Launch the floating GUI window
-  friday send <prompt>      Send a one-shot prompt to the daemon
-  friday tools              List all available tools
-  friday tools enable <t>   Enable an MCP server
-  friday tools disable <t>  Disable an MCP server
-  friday memory             Show saved memories
-  friday memory forget <k>  Forget memories matching keyword
+  friday status             Show what's running
+  friday tui                Launch the TUI
+  friday gui                Launch the floating GUI
+  friday send <prompt>      One-shot prompt via daemon
+  friday tools              List tools + MCP servers (indexed)
+  friday tools enable <n>   Enable MCP server by number or name
+  friday tools disable <n>  Disable MCP server by number or name
+  friday models             List/pull/remove Ollama models (indexed)
+  friday models pull <name> Pull a new model
+  friday models rm <n>      Remove model by number or name
+  friday memory             Show memories (indexed)
+  friday memory forget <n>  Forget by number or keyword
+  friday memory clear       Clear all memories
+  friday history            Show conversation history (indexed)
+  friday history load <n>   Load a conversation by number
+  friday history clear      Clear all history
   friday config             Show current config
-  friday config edit        Open config.toml in $EDITOR
-  friday health             Check backend and provider status
-  friday logs               Tail the backend logs
+  friday config edit        Open in $EDITOR
+  friday health             Check providers and dependencies
+  friday doctor             Full diagnostic check
+  friday backup             Backup config + memory + history
+  friday restore <file>     Restore from backup
+  friday reset              Reset config to defaults
+  friday update             Self-update (git pull + rebuild)
+  friday logs               Tail backend logs
+  friday completions        Generate shell completions
   friday version            Show version
 
 SHORTCUTS:
@@ -54,35 +67,67 @@ PORT=65535
 API="http://127.0.0.1:$PORT"
 DATA_DIR="$HOME/.local/share/friday"
 CONFIG_DIR="$HOME/.config/friday"
+BACKUP_DIR="$HOME/.local/share/friday/backups"
+
+# -----------------------------------------------------------------------
+# Helper: indexed selector
+# -----------------------------------------------------------------------
+# Prints items with [N] index, returns selected item for given input
+select_by_index() {
+    local -n items_ref=$1
+    local selection=$2
+    # If it's a number, use as index
+    if [[ "$selection" =~ ^[0-9]+$ ]]; then
+        local idx=$((selection - 1))
+        if [ $idx -ge 0 ] && [ $idx -lt ${#items_ref[@]} ]; then
+            echo "${items_ref[$idx]}"
+            return 0
+        fi
+    fi
+    # Otherwise return as-is (name match)
+    echo "$selection"
+}
 
 case "${1:-}" in
+    # -------------------------------------------------------------------
     start)
         shift
         exec "$FRIDAY_DIR/start.sh" "$@"
         ;;
 
+    # -------------------------------------------------------------------
     stop)
         echo "Stopping Friday..."
-        kill $(lsof -ti:$PORT) 2>/dev/null && echo "Backend stopped." || echo "Backend not running."
-        pkill -f "friday_core.*--daemon" 2>/dev/null && echo "Daemon stopped." || echo "Daemon not running."
+        kill $(lsof -ti:$PORT) 2>/dev/null && echo "  Backend stopped." || echo "  Backend not running."
+        pkill -f "friday_core.*--daemon" 2>/dev/null && echo "  Daemon stopped." || echo "  Daemon not running."
         rm -f "${XDG_RUNTIME_DIR:-/tmp}/friday.sock"
+        echo "Done."
         ;;
 
+    # -------------------------------------------------------------------
     status)
-        echo -n "Backend: "
+        echo "┌─ Friday Status ─────────────────────────┐"
+        echo -n "│ Backend:       "
         if curl -s "$API/health" > /dev/null 2>&1; then
-            HEALTH=$(curl -s "$API/health")
-            echo "ONLINE"
-            echo "  Providers: $(echo "$HEALTH" | python3 -c "import sys,json; print(', '.join(json.load(sys.stdin)['providers']))")"
+            echo "ONLINE                    │"
+            PROVIDERS=$(curl -s "$API/health" | python3 -c "import sys,json; print(', '.join(json.load(sys.stdin)['providers']))" 2>/dev/null)
+            printf "│ Providers:     %-26s│\n" "$PROVIDERS"
         else
-            echo "OFFLINE"
+            echo "OFFLINE                   │"
         fi
-        echo -n "Daemon socket: "
-        [ -S "${XDG_RUNTIME_DIR:-/tmp}/friday.sock" ] && echo "ACTIVE" || echo "INACTIVE"
-        echo -n "Ollama: "
-        curl -s http://localhost:11434/api/tags > /dev/null 2>&1 && echo "RUNNING" || echo "NOT RUNNING"
+        echo -n "│ Daemon socket: "
+        [ -S "${XDG_RUNTIME_DIR:-/tmp}/friday.sock" ] && echo "ACTIVE                    │" || echo "INACTIVE                  │"
+        echo -n "│ Ollama:        "
+        if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+            MODELS=$(curl -s http://localhost:11434/api/tags | python3 -c "import sys,json; ms=json.load(sys.stdin)['models']; print(', '.join(m['name'] for m in ms))" 2>/dev/null)
+            printf "%-26s│\n" "RUNNING ($MODELS)"
+        else
+            echo "NOT RUNNING               │"
+        fi
+        echo "└──────────────────────────────────────────┘"
         ;;
 
+    # -------------------------------------------------------------------
     tui)
         shift
         exec python -m friday_ai.tui "$@"
@@ -97,91 +142,252 @@ case "${1:-}" in
         exec "$FRIDAY_DIR/bin/friday-send" "$@"
         ;;
 
+    # -------------------------------------------------------------------
     tools)
         shift
         case "${1:-}" in
             enable)
-                SERVER="friday-${2:-}"
+                shift
                 python3 -c "
-import json
+import json, sys
 with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
-if '$SERVER' in data['servers']:
-    data['servers']['$SERVER']['enabled'] = True
+names = list(data['servers'].keys())
+sel = '$*'
+# Support index
+if sel.isdigit():
+    idx = int(sel) - 1
+    if 0 <= idx < len(names):
+        sel = names[idx]
+    else:
+        print(f'Invalid index: {int(sel)}'); sys.exit(1)
+# Support short name (without friday- prefix)
+if sel and not sel.startswith('friday-'):
+    sel = 'friday-' + sel
+if sel in data['servers']:
+    data['servers'][sel]['enabled'] = True
     with open('$CONFIG_DIR/mcp_servers.json', 'w') as f: json.dump(data, f, indent=2)
-    print('Enabled: $SERVER')
+    print(f'Enabled: {sel}')
 else:
-    print('Not found: $SERVER')
-    print('Available:', ', '.join(data['servers'].keys()))
+    print(f'Not found: {sel}')
+    for i, n in enumerate(names, 1): print(f'  [{i}] {n}')
 "
                 ;;
             disable)
-                SERVER="friday-${2:-}"
+                shift
                 python3 -c "
-import json
+import json, sys
 with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
-if '$SERVER' in data['servers']:
-    data['servers']['$SERVER']['enabled'] = False
+names = list(data['servers'].keys())
+sel = '$*'
+if sel.isdigit():
+    idx = int(sel) - 1
+    if 0 <= idx < len(names): sel = names[idx]
+    else: print(f'Invalid index: {int(sel)}'); sys.exit(1)
+if sel and not sel.startswith('friday-'): sel = 'friday-' + sel
+if sel in data['servers']:
+    data['servers'][sel]['enabled'] = False
     with open('$CONFIG_DIR/mcp_servers.json', 'w') as f: json.dump(data, f, indent=2)
-    print('Disabled: $SERVER')
+    print(f'Disabled: {sel}')
 else:
-    print('Not found: $SERVER')
+    print(f'Not found: {sel}')
 "
                 ;;
             *)
+                echo "Built-in tools:"
                 if curl -s "$API/health" > /dev/null 2>&1; then
-                    echo "Built-in tools:"
-                    curl -s -X POST "$API/reload" | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f'  {t}') for t in d['tools']]"
-                    echo ""
-                    echo "MCP servers:"
-                    python3 -c "
-import json
-with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
-for name, cfg in data['servers'].items():
-    status = 'ON ' if cfg['enabled'] else 'OFF'
-    print(f'  [{status}] {name}')
+                    curl -s -X POST "$API/reload" | python3 -c "
+import sys,json
+d = json.load(sys.stdin)
+tools = d['tools']
+# Handle both string list and dict list
+names = sorted(t if isinstance(t, str) else t.get('name', str(t)) for t in tools)
+for i, t in enumerate(names, 1):
+    print(f'  [{i:2}] {t}')
+print(f'\n  Total: {len(names)} tools')
 "
                 else
-                    echo "Backend offline. Showing MCP config only:"
-                    python3 -c "
+                    echo "  (backend offline)"
+                fi
+                echo ""
+                echo "MCP servers:"
+                python3 -c "
 import json
 with open('$CONFIG_DIR/mcp_servers.json') as f: data = json.load(f)
-for name, cfg in data['servers'].items():
-    status = 'ON ' if cfg['enabled'] else 'OFF'
-    print(f'  [{status}] {name}')
+for i, (name, cfg) in enumerate(data['servers'].items(), 1):
+    status = '\033[32mON \033[0m' if cfg['enabled'] else '\033[31mOFF\033[0m'
+    short = name.replace('friday-', '')
+    print(f'  [{i:2}] {status} {short:15} ({name})')
+print(f'\n  Use: friday tools enable <number>')
 "
-                fi
                 ;;
         esac
         ;;
 
+    # -------------------------------------------------------------------
+    models)
+        shift
+        case "${1:-}" in
+            pull)
+                shift
+                echo "Pulling model: $*"
+                ollama pull "$@"
+                ;;
+            rm|remove)
+                shift
+                SELECTION="$*"
+                python3 -c "
+import json, subprocess, sys
+result = subprocess.run(['curl', '-s', 'http://localhost:11434/api/tags'], capture_output=True, text=True)
+data = json.loads(result.stdout)
+models = [m['name'] for m in data.get('models', [])]
+sel = '$SELECTION'
+if sel.isdigit():
+    idx = int(sel) - 1
+    if 0 <= idx < len(models): sel = models[idx]
+    else: print(f'Invalid index: {int(sel)}'); sys.exit(1)
+if sel in models:
+    subprocess.run(['ollama', 'rm', sel])
+    print(f'Removed: {sel}')
+else:
+    print(f'Not found: {sel}')
+    for i, m in enumerate(models, 1): print(f'  [{i}] {m}')
+"
+                ;;
+            *)
+                echo "Ollama models:"
+                python3 -c "
+import json, subprocess
+result = subprocess.run(['curl', '-s', 'http://localhost:11434/api/tags'], capture_output=True, text=True)
+data = json.loads(result.stdout)
+models = data.get('models', [])
+if not models:
+    print('  (none installed)')
+else:
+    for i, m in enumerate(models, 1):
+        size_gb = m.get('size', 0) / (1024**3)
+        print(f'  [{i}] {m[\"name\"]:20} {size_gb:.1f} GB')
+print(f'\n  Use: friday models pull <name>')
+print('  Use: friday models rm <number>')
+" 2>/dev/null || echo "  Ollama not running."
+                ;;
+        esac
+        ;;
+
+    # -------------------------------------------------------------------
     memory)
         shift
         case "${1:-}" in
             forget)
                 shift
-                curl -s -X POST "$API/memory/forget?keyword=$*" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Forgot: {d[\"forgot\"]}')"
-                ;;
-            clear)
-                curl -s -X POST "$API/memory/clear" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])"
-                ;;
-            *)
-                if curl -s "$API/health" > /dev/null 2>&1; then
-                    curl -s -X POST "$API/memory/list" | python3 -c "
-import sys,json
-entries = json.load(sys.stdin)['entries']
-if entries:
-    for e in entries: print(f'  - {e}')
+                SELECTION="$*"
+                if [[ "$SELECTION" =~ ^[0-9]+$ ]]; then
+                    # Forget by index
+                    python3 -c "
+lines = open('$DATA_DIR/memory/MEMORY.md').read().strip().splitlines()
+entries = [l.lstrip('- ').strip() for l in lines if l.strip().startswith('-')]
+idx = int('$SELECTION') - 1
+if 0 <= idx < len(entries):
+    keyword = entries[idx]
+    remaining = [l for l in lines if keyword not in l]
+    open('$DATA_DIR/memory/MEMORY.md', 'w').write('\n'.join(remaining) + '\n' if remaining else '')
+    print(f'Forgot: {keyword}')
 else:
-    print('  (empty)')
+    print(f'Invalid index: $SELECTION')
 "
                 else
-                    echo "Memories (from file):"
-                    cat "$HOME/.local/share/friday/memory/MEMORY.md" 2>/dev/null || echo "  (empty)"
+                    if curl -s "$API/health" > /dev/null 2>&1; then
+                        curl -s -X POST "$API/memory/forget?keyword=$SELECTION" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Forgot: {d[\"forgot\"]}')"
+                    else
+                        python3 -c "
+lines = open('$DATA_DIR/memory/MEMORY.md').read().strip().splitlines()
+remaining = [l for l in lines if '$SELECTION'.lower() not in l.lower()]
+open('$DATA_DIR/memory/MEMORY.md', 'w').write('\n'.join(remaining) + '\n' if remaining else '')
+print('Forgot entries matching: $SELECTION')
+"
+                    fi
                 fi
+                ;;
+            clear)
+                echo -n "" > "$DATA_DIR/memory/MEMORY.md"
+                echo "Memory cleared."
+                ;;
+            *)
+                echo "Memories:"
+                python3 -c "
+lines = open('$DATA_DIR/memory/MEMORY.md').read().strip().splitlines()
+entries = [l.lstrip('- ').strip() for l in lines if l.strip().startswith('-')]
+if entries:
+    for i, e in enumerate(entries, 1):
+        print(f'  [{i}] {e}')
+else:
+    print('  (empty)')
+print(f'\n  Use: friday memory forget <number>')
+"
                 ;;
         esac
         ;;
 
+    # -------------------------------------------------------------------
+    history)
+        shift
+        case "${1:-}" in
+            load)
+                shift
+                SELECTION="$*"
+                python3 -c "
+import json, os
+from pathlib import Path
+hist_dir = Path('$DATA_DIR/history')
+sessions = sorted(hist_dir.glob('session-*.json'), reverse=True)
+sel = '$SELECTION'
+if sel.isdigit():
+    idx = int(sel) - 1
+    if 0 <= idx < len(sessions):
+        data = json.loads(sessions[idx].read_text())
+        msgs = data.get('messages', [])
+        for m in msgs[-10:]:
+            role = m.get('role', '?')
+            text = m.get('content', '')[:100]
+            print(f'  [{role}] {text}')
+        print(f'\n  ({len(msgs)} messages total)')
+    else:
+        print(f'Invalid index: {sel}')
+else:
+    print('Usage: friday history load <number>')
+"
+                ;;
+            clear)
+                rm -f "$DATA_DIR/history/session-*.json"
+                echo "History cleared."
+                ;;
+            *)
+                echo "Conversation history:"
+                python3 -c "
+import json
+from pathlib import Path
+from datetime import datetime
+hist_dir = Path('$DATA_DIR/history')
+sessions = sorted(hist_dir.glob('session-*.json'), reverse=True)
+if not sessions:
+    print('  (no saved conversations)')
+else:
+    for i, s in enumerate(sessions[:20], 1):
+        data = json.loads(s.read_text())
+        msgs = data.get('messages', [])
+        ts = data.get('timestamp', s.stem.replace('session-', ''))
+        first_msg = ''
+        for m in msgs:
+            if m.get('role') == 'user':
+                first_msg = m.get('content', '')[:40]
+                break
+        print(f'  [{i:2}] {ts}  {first_msg:40} ({len(msgs)} msgs)')
+print(f'\n  Use: friday history load <number>')
+"
+                ;;
+        esac
+        ;;
+
+    # -------------------------------------------------------------------
     config)
         shift
         case "${1:-}" in
@@ -194,14 +400,212 @@ else:
         esac
         ;;
 
+    # -------------------------------------------------------------------
     health)
         curl -s "$API/health" 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "Backend offline."
         ;;
 
+    # -------------------------------------------------------------------
+    doctor)
+        set +e  # Disable strict mode for doctor
+        echo "┌─ Friday Doctor ──────────────────────────┐"
+        echo "│ Checking dependencies...                  │"
+        echo "└───────────────────────────────────────────┘"
+        echo ""
+        PASS=0; FAIL=0; WARN=0
+
+        check() {
+            local name="$1" cmd="$2"
+            if eval "$cmd" > /dev/null 2>&1; then
+                echo -e "  \033[32m✓\033[0m $name"
+                PASS=$((PASS + 1))
+            else
+                echo -e "  \033[31m✗\033[0m $name"
+                FAIL=$((FAIL + 1))
+            fi
+        }
+
+        warn() {
+            local name="$1" cmd="$2"
+            if eval "$cmd" > /dev/null 2>&1; then
+                echo -e "  \033[32m✓\033[0m $name"
+                PASS=$((PASS + 1))
+            else
+                echo -e "  \033[33m⚠\033[0m $name (optional)"
+                WARN=$((WARN + 1))
+            fi
+        }
+
+        echo "Core:"
+        check "Python 3.11+"          "python3 -c 'import sys; assert sys.version_info >= (3,11)'"
+        check "Friday venv"            "test -f $FRIDAY_DIR/.venv/bin/python"
+        check "FastAPI"                "python3 -c 'import fastapi'"
+        check "Ollama"                 "which ollama"
+        check "Ollama running"         "curl -s http://localhost:11434/api/tags"
+        check "Ollama has models"      "curl -s http://localhost:11434/api/tags | python3 -c 'import sys,json; assert json.load(sys.stdin)[\"models\"]'"
+        check "Rust toolchain"         "which cargo"
+        check "Friday Rust binary"     "test -f $FRIDAY_DIR/friday_core/target/release/friday_core"
+        check "Config exists"          "test -f $CONFIG_DIR/config.toml"
+        check "SOUL.md exists"         "test -f $CONFIG_DIR/SOUL.md"
+
+        echo ""
+        echo "Tools:"
+        check "wtype (keyboard)"       "which wtype"
+        check "ydotool (mouse)"        "which ydotool"
+        warn  "ydotoold running"       "pgrep ydotoold"
+        check "grim (screenshot)"      "which grim"
+        check "slurp (region select)"  "which slurp"
+        check "tesseract (OCR)"        "which tesseract"
+        check "notify-send"            "which notify-send"
+        check "brightnessctl"          "which brightnessctl"
+        check "playerctl"              "which playerctl"
+        warn  "socat"                  "which socat"
+        warn  "googler (web search)"   "which googler"
+        warn  "wlrctl (window list)"   "which wlrctl"
+
+        echo ""
+        echo "Paths:"
+        check "friday in PATH"         "which friday"
+        check "friday-tui in PATH"     "which friday-tui"
+        check "friday-send in PATH"    "which friday-send"
+        check "friday-gui in PATH"     "which friday-gui"
+
+        echo ""
+        echo "Network:"
+        check "Backend reachable"      "curl -s $API/health"
+        warn  "Internet available"     "ping -c1 -W2 1.1.1.1"
+        warn  "Daemon socket"          "test -S ${XDG_RUNTIME_DIR:-/tmp}/friday.sock"
+
+        echo ""
+        echo "────────────────────────────────────────────"
+        echo -e "  \033[32m$PASS passed\033[0m  \033[31m$FAIL failed\033[0m  \033[33m$WARN optional missing\033[0m"
+        [ $FAIL -gt 0 ] && echo "  Run missing installs to fix failures."
+        ;;
+
+    # -------------------------------------------------------------------
+    models)
+        # Already handled above, this is a fallback
+        echo "Use: friday models"
+        ;;
+
+    # -------------------------------------------------------------------
+    backup)
+        mkdir -p "$BACKUP_DIR"
+        TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+        BACKUP_FILE="$BACKUP_DIR/friday-backup-$TIMESTAMP.tar.gz"
+        echo "Creating backup..."
+        tar czf "$BACKUP_FILE" \
+            -C "$HOME" \
+            .config/friday/config.toml \
+            .config/friday/SOUL.md \
+            .config/friday/USER.md \
+            .config/friday/AGENTS.md \
+            .config/friday/mcp_servers.json \
+            .local/share/friday/memory/ \
+            .local/share/friday/history/ \
+            2>/dev/null
+        SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+        echo "Backup saved: $BACKUP_FILE ($SIZE)"
+        ;;
+
+    restore)
+        shift
+        FILE="${1:-}"
+        if [ -z "$FILE" ]; then
+            echo "Available backups:"
+            ls -1t "$BACKUP_DIR"/friday-backup-*.tar.gz 2>/dev/null | head -10 | nl -ba
+            echo ""
+            echo "Usage: friday restore <file>"
+            exit 0
+        fi
+        if [ ! -f "$FILE" ]; then
+            # Try as index
+            if [[ "$FILE" =~ ^[0-9]+$ ]]; then
+                BACKUPS=($(ls -1t "$BACKUP_DIR"/friday-backup-*.tar.gz 2>/dev/null))
+                IDX=$(($FILE - 1))
+                if [ $IDX -ge 0 ] && [ $IDX -lt ${#BACKUPS[@]} ]; then
+                    FILE="${BACKUPS[$IDX]}"
+                else
+                    echo "Invalid index."
+                    exit 1
+                fi
+            else
+                echo "File not found: $FILE"
+                exit 1
+            fi
+        fi
+        echo "Restoring from: $FILE"
+        tar xzf "$FILE" -C "$HOME"
+        echo "Restored config, memory, and history."
+        ;;
+
+    # -------------------------------------------------------------------
+    reset)
+        echo "This will reset Friday to defaults. Your memory and history will be kept."
+        echo -n "Continue? [y/N] "
+        read -r REPLY
+        if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+            cp "$FRIDAY_DIR/config/config.toml" "$CONFIG_DIR/config.toml"
+            cp "$FRIDAY_DIR/config/SOUL.md" "$CONFIG_DIR/SOUL.md"
+            cp "$FRIDAY_DIR/config/USER.md" "$CONFIG_DIR/USER.md"
+            cp "$FRIDAY_DIR/config/AGENTS.md" "$CONFIG_DIR/AGENTS.md"
+            echo "Config reset to defaults. Memory and history preserved."
+        else
+            echo "Cancelled."
+        fi
+        ;;
+
+    # -------------------------------------------------------------------
+    update)
+        echo "Updating Friday..."
+        cd "$FRIDAY_DIR"
+        echo "  Pulling latest..."
+        git pull 2>&1 | sed 's/^/  /'
+        echo "  Updating Python deps..."
+        .venv/bin/pip install -e ".[dev]" -q 2>&1 | tail -1 | sed 's/^/  /'
+        echo "  Rebuilding Rust core..."
+        cd friday_core && cargo build --release 2>&1 | tail -1 | sed 's/^/  /'
+        cd ..
+        echo "  Done. Restart Friday to apply changes."
+        ;;
+
+    # -------------------------------------------------------------------
     logs)
         tail -f "$DATA_DIR/uvicorn.log" 2>/dev/null || echo "No log file found."
         ;;
 
+    # -------------------------------------------------------------------
+    completions)
+        cat << 'COMP'
+# Add to ~/.zshrc or ~/.bashrc:
+# eval "$(friday completions)"
+
+_friday_completions() {
+    local commands="start stop status tui gui send tools models memory history config health doctor backup restore reset update logs completions version help"
+    local tools_sub="enable disable"
+    local models_sub="pull rm"
+    local memory_sub="forget clear"
+    local history_sub="load clear"
+    local config_sub="edit"
+
+    if [ "${#COMP_WORDS[@]}" -eq 2 ]; then
+        COMPREPLY=($(compgen -W "$commands" -- "${COMP_WORDS[1]}"))
+    elif [ "${#COMP_WORDS[@]}" -eq 3 ]; then
+        case "${COMP_WORDS[1]}" in
+            tools) COMPREPLY=($(compgen -W "$tools_sub" -- "${COMP_WORDS[2]}")) ;;
+            models) COMPREPLY=($(compgen -W "$models_sub" -- "${COMP_WORDS[2]}")) ;;
+            memory) COMPREPLY=($(compgen -W "$memory_sub" -- "${COMP_WORDS[2]}")) ;;
+            history) COMPREPLY=($(compgen -W "$history_sub" -- "${COMP_WORDS[2]}")) ;;
+            config) COMPREPLY=($(compgen -W "$config_sub" -- "${COMP_WORDS[2]}")) ;;
+            start) COMPREPLY=($(compgen -W "--daemon" -- "${COMP_WORDS[2]}")) ;;
+        esac
+    fi
+}
+complete -F _friday_completions friday
+COMP
+        ;;
+
+    # -------------------------------------------------------------------
     version)
         echo "Friday v$VERSION"
         ;;
@@ -216,7 +620,7 @@ else:
 
     *)
         echo "Unknown command: $1"
-        echo "Run 'friday' for help."
+        echo "Run 'friday help' for all commands."
         exit 1
         ;;
 esac
