@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#69daff",
+                        "primary-dim": "#00c0ea",
+                        "primary-fixed": "#00cffc",
+                        "surface": "#060608",
+                        "surface-variant": "#0d1117",
+                        "on-surface": "#f0ecf6",
+                        "outline": "#334155",
+                        "outline-variant": "#1e293b",
+                    },
+                    "fontFamily": {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #060608;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 207, 252, 0.05) 0%, transparent 50%),
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98' viewBox='0 0 56 98'%3E%3Cpath fill='%2300cffc' fill-opacity='0.03' d='M28 18.5l26 15v30l-26 15-26-15v-30l26-15zM2 35.8v26.4l26 15 26-15V35.8l-26-15-26 15z'/%3E%3C/svg%3E");
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .hex-clip {
+            clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%);
+        }
+        .angular-panel {
+            clip-path: polygon(0 0, 95% 0, 100% 15%, 100% 100%, 5% 100%, 0 85%);
+            background: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 207, 252, 0.2);
+            position: relative;
+        }
+        .angular-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 1px solid transparent;
+            background: linear-gradient(135deg, rgba(105, 218, 255, 0.3), transparent 40%) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .glow-surface {
+            box-shadow: 0 0 20px rgba(0, 207, 252, 0.1), inset 0 0 10px rgba(0, 207, 252, 0.05);
+        }
+        .light-trail {
+            position: absolute;
+            width: 1px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, #00cffc, transparent);
+            animation: moveTrail 8s linear infinite;
+            opacity: 0.3;
+        }
+        @keyframes moveTrail {
+            0% { transform: translateY(-100vh) translateX(0); }
+            100% { transform: translateY(100vh) translateX(20px); }
+        }
+        .data-bar {
+            height: 2px;
+            background: #1e293b;
+            position: relative;
+            overflow: hidden;
+        }
+        .data-bar-fill {
+            height: 100%;
+            background: #00cffc;
+            box-shadow: 0 0 8px #00cffc;
+        }
+        .touch-button {
+            position: relative;
+            background: rgba(0, 207, 252, 0.05);
+            border: 1px solid rgba(0, 207, 252, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .touch-button:hover {
+            background: rgba(0, 207, 252, 0.15);
+            border-color: rgba(0, 207, 252, 0.6);
+            box-shadow: 0 0 15px rgba(0, 207, 252, 0.3);
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        button.active { background: rgba(0, 207, 252, 0.15); border-color: rgba(0, 207, 252, 0.5); color: #69daff; box-shadow: 0 0 10px rgba(0, 207, 252, 0.2); }
+    </style>
+</head>
+<body class="text-on-surface font-body overflow-hidden selection:bg-primary/30">
+<!-- Light Trails Decoration -->
+<div class="fixed inset-0 pointer-events-none z-0">
+<div class="light-trail" style="left: 10%; animation-delay: 0s;"></div>
+<div class="light-trail" style="left: 30%; animation-delay: 2s;"></div>
+<div class="light-trail" style="left: 70%; animation-delay: 5s;"></div>
+<div class="light-trail" style="left: 90%; animation-delay: 3s;"></div>
+</div>
+<!-- Header -->
+<header class="fixed top-0 w-full border-b border-primary/10 bg-surface/80 backdrop-blur-xl flex justify-between items-center px-8 h-20 z-50">
+<div class="flex items-center gap-6">
+<div class="relative">
+<div class="w-10 h-10 hex-clip bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">hub</span>
+</div>
+<div class="absolute inset-0 bg-primary/40 blur-lg -z-10 animate-pulse"></div>
+</div>
+<div>
+<h1 class="text-xl font-headline font-bold tracking-[0.25em] text-primary drop-shadow-[0_0_10px_rgba(0,209,255,0.5)]">SYNTHETIC_CORE</h1>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span class="font-mono text-[9px] text-primary/70 tracking-widest uppercase">Kernel v4.0.2-Stable</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex gap-4">
+<div class="p-2 touch-button flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/70 text-lg">monitoring</span>
+</div>
+<div class="p-2 touch-button flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/70 text-lg">dns</span>
+</div>
+<div class="p-2 touch-button flex items-center justify-center">
+<span class="material-symbols-outlined text-primary/70 text-lg">settings_input_component</span>
+</div>
+</div>
+<button id="settingsBtn" class="touch-button p-2 text-primary/60">
+  <span class="material-symbols-outlined" style="font-size:20px;">settings</span>
+</button>
+</div>
+</header>
+<main class="relative h-screen w-full pt-20 pb-32 flex flex-col items-center z-10">
+<!-- Telemetry HUD Overlay -->
+<div class="absolute top-28 right-8 z-20 flex flex-col gap-4 pointer-events-none">
+<div class="angular-panel p-5 min-w-[240px] glow-surface">
+<div class="mb-4">
+<div class="flex justify-between items-end mb-1">
+<span class="font-mono text-[10px] text-primary/60">SYNAPTIC_LOAD</span>
+<span class="font-mono text-xs text-primary">12.4%</span>
+</div>
+<div class="data-bar"><div class="data-bar-fill w-[12.4%]"></div></div>
+</div>
+<div class="mb-4">
+<div class="flex justify-between items-end mb-1">
+<span class="font-mono text-[10px] text-primary/60">MEM_ALLOC</span>
+<span class="font-mono text-xs text-primary">4.8 / 128 GB</span>
+</div>
+<div class="data-bar"><div class="data-bar-fill w-[24%]"></div></div>
+</div>
+<div>
+<div class="flex justify-between items-end mb-1">
+<span class="font-mono text-[10px] text-primary/60">LATENCY_NODE</span>
+<span class="font-mono text-xs text-primary">0.04ms</span>
+</div>
+<div class="flex gap-0.5 h-6 items-end">
+<div class="flex-1 bg-primary/20 h-[30%]"></div>
+<div class="flex-1 bg-primary/20 h-[45%]"></div>
+<div class="flex-1 bg-primary/40 h-[60%] animate-pulse"></div>
+<div class="flex-1 bg-primary/20 h-[40%]"></div>
+<div class="flex-1 bg-primary/20 h-[35%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Left Nav Stats -->
+<div class="absolute top-28 left-8 z-20 flex flex-col gap-2 pointer-events-none hidden xl:flex">
+<div class="font-mono text-[9px] text-primary/40 tracking-tighter uppercase vertical-text transform -rotate-180" style="writing-mode: vertical-rl;">SYSTEM_STATE_ACTIVE</div>
+<div class="h-32 w-px bg-gradient-to-b from-transparent via-primary/30 to-transparent mx-auto"></div>
+</div>
+<!-- Empty State -->
+<div id="emptyState" class="hidden flex flex-col items-center justify-center min-h-[60vh] px-8 text-center">
+  <div class="hex-clip w-24 h-24 bg-primary/10 flex items-center justify-center mb-8 glow-surface">
+    <span class="text-3xl font-headline font-bold text-primary">F</span>
+  </div>
+  <div class="text-xs font-mono tracking-[0.3em] uppercase text-primary/80 mb-2">SYSTEM_READY: WHAT_CAN_I_HELP_WITH?</div>
+  <div class="w-16 h-[1px] bg-primary/20 my-6"></div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-3xl w-full">
+    <button onclick="window.fridayQuickSend('Refactor this code')" class="angular-panel p-4 text-left hover:border-primary/40 transition-all">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:18px;">code_blocks</span>
+      <div class="text-[9px] font-mono tracking-widest text-primary/50 uppercase">REFACTOR_CORE</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Analyze data')" class="angular-panel p-4 text-left hover:border-primary/40 transition-all">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:18px;">analytics</span>
+      <div class="text-[9px] font-mono tracking-widest text-primary/50 uppercase">DATA_ANALYSIS</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Search the web')" class="angular-panel p-4 text-left hover:border-primary/40 transition-all">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:18px;">hub</span>
+      <div class="text-[9px] font-mono tracking-widest text-primary/50 uppercase">LOGIC_BRIDGE</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Check security')" class="angular-panel p-4 text-left hover:border-primary/40 transition-all">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:18px;">security</span>
+      <div class="text-[9px] font-mono tracking-widest text-primary/50 uppercase">SECURE_TUNNEL</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Help me think')" class="angular-panel p-4 text-left hover:border-primary/40 transition-all">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:18px;">neurology</span>
+      <div class="text-[9px] font-mono tracking-widest text-primary/50 uppercase">SYNAPSE_LINK</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Run a command')" class="angular-panel p-4 text-left hover:border-primary/40 transition-all">
+      <span class="material-symbols-outlined text-primary mb-2" style="font-size:18px;">terminal</span>
+      <div class="text-[9px] font-mono tracking-widest text-primary/50 uppercase">KERNEL_EXECUTE</div>
+    </button>
+  </div>
+</div>
+<!-- Chat Canvas -->
+<div id="chatArea" class="flex-1 w-full max-w-4xl px-8 overflow-y-auto scrollbar-hide space-y-12 py-12">
+</div>
+<!-- Chat Input Bar -->
+<div class="fixed bottom-0 left-0 w-full p-10 flex justify-center bg-gradient-to-t from-surface via-surface/95 to-transparent">
+<div class="w-full max-w-3xl relative">
+<div class="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+<div class="relative angular-panel h-16 px-8 flex items-center gap-5 border-primary/40 glow-surface">
+<span class="material-symbols-outlined text-primary/60">terminal</span>
+<input id="messageInput" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-primary/30 font-mono text-sm tracking-widest uppercase" placeholder="Input_Signal_Awaiting..." type="text"/>
+<div class="flex items-center gap-4">
+<button class="text-primary/40 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">attachment</span>
+</button>
+<button id="sendBtn" class="touch-button p-2.5 px-6 flex items-center justify-center text-primary group">
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-2 justify-center mt-4">
+  <button id="modeChat" class="touch-button px-4 py-1.5 text-[9px] font-mono tracking-widest uppercase text-primary">NODES</button>
+  <button id="modeCommand" class="touch-button px-4 py-1.5 text-[9px] font-mono tracking-widest uppercase text-primary/30">FLOW</button>
+  <button id="modeSearch" class="touch-button px-4 py-1.5 text-[9px] font-mono tracking-widest uppercase text-primary/30">QUERY</button>
+</div>
+</div>
+</div>
+<!-- Navigation Dock -->
+<nav class="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 flex items-center bg-surface-variant/40 backdrop-blur-2xl p-1.5 border border-primary/20 angular-panel hidden lg:flex">
+<button class="touch-button flex items-center gap-3 px-6 py-2 bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-lg">message</span>
+<span class="font-headline text-[10px] font-bold tracking-widest uppercase">Nodes</span>
+</button>
+<button class="flex items-center gap-3 px-6 py-2 text-primary/40 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg">schema</span>
+<span class="font-headline text-[10px] font-bold tracking-widest uppercase">Flow</span>
+</button>
+<button class="flex items-center gap-3 px-6 py-2 text-primary/40 hover:text-primary transition-all">
+<span class="material-symbols-outlined text-lg">manage_search</span>
+<span class="font-headline text-[10px] font-bold tracking-widest uppercase">Query</span>
+</button>
+</nav>
+</main>
+
+<div id="settingsOverlay" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[90]"></div>
+
+<div id="settingsPanel" class="hidden fixed top-0 right-0 h-full w-full max-w-[440px] z-[100] flex flex-col overflow-hidden" style="background:rgba(13,17,23,0.95); backdrop-filter:blur(20px); border-left:1px solid rgba(105,218,255,0.15);">
+  <div class="flex items-center justify-between px-6 py-5 border-b border-primary/10">
+    <span class="text-sm font-headline tracking-widest uppercase text-primary">SYSTEM_CONFIG</span>
+    <button onclick="window.fridayToggleSettings()" class="touch-button p-1.5 text-primary/60">
+      <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+    </button>
+  </div>
+  <div class="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-8">
+    <div>
+      <div class="text-[10px] font-mono tracking-widest uppercase text-primary/50 mb-3">VISUAL_PROTOCOL</div>
+      <div id="themeSelect"></div>
+    </div>
+    <div>
+      <div class="text-[10px] font-mono tracking-widest uppercase text-primary/50 mb-3">PROVIDER_NODES</div>
+      <div id="settingsProviders"></div>
+    </div>
+    <div>
+      <div class="text-[10px] font-mono tracking-widest uppercase text-primary/50 mb-3">MCP_NETWORK</div>
+      <div id="settingsMCP"></div>
+    </div>
+    <div>
+      <div class="text-[10px] font-mono tracking-widest uppercase text-primary/50 mb-3">TOOL_MODULES</div>
+      <div id="settingsTools"></div>
+    </div>
+    <div>
+      <div class="text-[10px] font-mono tracking-widest uppercase text-primary/50 mb-3">MEMORY_CORE</div>
+      <div id="settingsMemory"></div>
+      <button onclick="window.fridayClearMemory()" class="mt-3 touch-button px-3 py-1 text-[9px] font-mono tracking-widest uppercase text-error/60">PURGE_MEMORY</button>
+    </div>
+  </div>
+</div>
+
+<template id="tplUserBubble">
+  <div class="flex justify-end mb-8">
+    <div class="max-w-[75%] p-6 relative" style="clip-path:polygon(5% 0,100% 0,100% 85%,95% 100%,0 100%,0 15%); background:rgba(105,218,255,0.05); border:1px solid rgba(105,218,255,0.15);">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-[9px] font-mono tracking-widest text-primary/40 uppercase">ADMIN_ROOT</span>
+        <span class="text-[8px] font-mono text-primary/20">{TIME}</span>
+      </div>
+      <div class="text-sm font-body leading-relaxed text-on-surface/90">{CONTENT}</div>
+    </div>
+  </div>
+</template>
+
+<template id="tplFridayBubble">
+  <div class="flex gap-5 items-start mb-8">
+    <div class="flex-shrink-0 hex-clip w-10 h-10 bg-primary/10 flex items-center justify-center">
+      <span class="text-primary font-bold text-sm">F</span>
+    </div>
+    <div class="flex-1 max-w-[85%]">
+      <div class="angular-panel p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-[9px] font-mono tracking-widest text-primary uppercase">FRIDAY_CORE.V4</span>
+          <span class="text-[8px] bg-primary/10 text-primary px-1.5 py-0.5 font-mono border border-primary/20">{PROVIDER}</span>
+        </div>
+        <div class="text-sm font-body leading-relaxed text-on-surface/85">{CONTENT}</div>
+      </div>
+      <div class="text-[8px] font-mono text-primary/20 mt-2 px-2">{TIME}</div>
+    </div>
+  </div>
+</template>
+
+<script src="/static/chat-engine.js"></script>
+</body></html>
