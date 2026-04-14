@@ -1,61 +1,58 @@
 /* Techno — "Friday OS" — green terminal hacker aesthetic */
 
-Screen {
-    background: #0a0a0a;
-    color: #e0ffe0;
-    layout: grid;
-    grid-size: 1;
-    grid-rows: 1fr auto auto;
-}
+Screen { background: #0a0a0a; color: #e0ffe0; }
 
-#messages {
-    background: #0a0a0a;
-    scrollbar-color: #222222;
-    scrollbar-color-hover: #4ae176;
-    scrollbar-color-active: #4ae176;
-    scrollbar-background: #111111;
-    min-height: 3;
-}
+Sidebar { dock: left; width: 32; layer: overlay; background: #0a0a0a; border-right: vkey #222222; padding: 1 0; }
+TelemetryPanel { dock: right; width: 34; layer: overlay; background: #0a0a0a; border-left: vkey #222222; padding: 1 0; }
+#chat-body { width: 100%; height: 100%; }
+#messages { background: #0a0a0a; scrollbar-color: #222222; scrollbar-color-hover: #4ae176; scrollbar-color-active: #4ae176; scrollbar-background: #0a0a0a; }
 
-.msg-user { background: #111111; color: #e0ffe0; margin: 1 2 0 20; padding: 1 2; }
-.msg-assistant { background: #1a1a1a; color: #e0ffe0; margin: 1 20 0 2; padding: 1 2; border-left: thick #4ae176; }
-.msg-user .timestamp { color: #6a946a; }
+#welcome-banner { width: 100%; content-align: center middle; text-align: center; color: #4ae176; padding: 4 0; }
+
+.msg-user { background: #111111; color: #e0ffe0; margin: 1 4 0 24; padding: 1 2; }
+.msg-assistant { background: #1a1a1a; color: #e0ffe0; margin: 1 24 0 4; padding: 1 2; border-left: thick #4ae176; }
+.msg-user .timestamp { color: #6a946a; text-align: right; }
 .msg-assistant .timestamp { color: #6a946a; }
-.provider-tag { background: #22c55e; color: #0a0a0a; padding: 0 1; }
+.provider-tag { background: #22c55e; color: #0a0a0a; padding: 0 1; text-style: bold; }
 .latency-tag { color: #6a946a; }
 
-ModeBar { height: 1; background: #111111; padding: 0 2; }
-#mode-bar { height: 1; background: #111111; }
+ModeBar { dock: bottom; height: 1; background: #111111; }
+#mode-bar { height: 1; background: #111111; padding: 0 2; }
 .mode-active { color: #4ae176; text-style: bold; }
 .mode-inactive { color: #6a946a; }
 
-InputBar { height: auto; max-height: 6; background: #0a0a0a; padding: 0 1; }
-#input-area { height: auto; max-height: 6; background: #0a0a0a; }
-#chat-input { background: #050505; color: #e0ffe0; border: tall #222222; padding: 0 2; margin: 0 1; }
+InputBar { dock: bottom; height: auto; max-height: 5; background: #0a0a0a; padding: 0 2 1 2; }
+#input-area { height: auto; max-height: 5; }
+#chat-input { background: #050505; color: #e0ffe0; border: tall #222222; padding: 0 2; }
 #chat-input:focus { border: tall #4ae176; }
-#thinking-label { color: #4ae176; text-style: italic; padding: 0 2; }
+#thinking-label { color: #4ae176; text-style: italic; padding: 0 2; height: 1; }
 
-#sidebar { background: #0a0a0a; width: 30; dock: left; border-right: tall #1a1a1a; layer: overlay; }
-#sidebar-title { color: #6a946a; text-style: bold; padding: 1 1; }
-.session-item { padding: 0 1; height: 1; }
+#sidebar { height: 100%; }
+#sidebar-title { color: #4ae176; text-style: bold; padding: 0 2 1 2; }
+#new-session-btn { color: #4ae176; padding: 0 2; height: 1; }
+.session-item { padding: 0 2; height: 1; color: #e0ffe0; }
 .session-item:hover { background: #1a1a1a; }
 .session-item.-selected { background: #222222; color: #4ae176; }
-.session-group-label { color: #6a946a; text-style: bold; padding: 1 1 0 1; }
+.session-group-label { color: #6a946a; text-style: bold; padding: 1 2 0 2; }
 
-#telemetry { background: #0a0a0a; width: 30; dock: right; border-left: tall #1a1a1a; layer: overlay; }
-#telemetry-title { color: #6a946a; text-style: bold; padding: 1 1; }
-.telemetry-label { color: #6a946a; }
-.telemetry-value { color: #e0ffe0; }
+#telemetry { height: 100%; }
+#telemetry-title { color: #4ae176; text-style: bold; padding: 0 2 1 2; }
+.telemetry-label { color: #6a946a; text-style: bold; padding: 1 2 0 2; }
+.telemetry-value { color: #e0ffe0; padding: 0 2; }
 .status-online { color: #4ae176; }
 .status-offline { color: #ff4444; }
 .status-connecting { color: #22c55e; }
 
-#settings-screen { background: #0a0a0a; }
+#settings-screen { background: #0a0a0a; height: 100%; width: 100%; }
+#settings-header { height: 1; background: #111111; padding: 0 2; }
+#settings-tabs { height: 1; background: #0a0a0a; padding: 0 1; }
+#settings-fields { background: #0a0a0a; }
+#settings-footer { height: 1; background: #111111; padding: 0 2; dock: bottom; }
 .settings-tab-active { background: #1a1a1a; color: #4ae176; text-style: bold; padding: 0 2; }
 .settings-tab-inactive { background: #0a0a0a; color: #6a946a; padding: 0 2; }
 .settings-label { color: #e0ffe0; }
 .settings-value { color: #4ae176; }
-.settings-field { height: 1; padding: 0 1; }
+.settings-field { height: 1; padding: 0 2; }
 .settings-field.-selected { background: #1a1a1a; }
 
 #welcome { background: #0a0a0a; align: center middle; }

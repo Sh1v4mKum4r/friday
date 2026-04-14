@@ -5,14 +5,36 @@ from __future__ import annotations
 from datetime import datetime
 
 from textual.app import ComposeResult
-from textual.containers import VerticalScroll
+from textual.containers import Vertical, VerticalScroll
 from textual.screen import Screen
+from textual.widgets import Label, Static
 
 from friday_ai.tui.widgets.input_bar import InputBar
 from friday_ai.tui.widgets.message import MessageWidget
 from friday_ai.tui.widgets.mode_bar import ModeBar
 from friday_ai.tui.widgets.sidebar import Sidebar
 from friday_ai.tui.widgets.telemetry import TelemetryPanel
+
+FRIDAY_LOGO = """\
+ ███████╗ ██████╗  ██╗ ██████╗   █████╗  ██╗   ██╗
+ ██╔════╝ ██╔══██╗ ██║ ██╔══██╗ ██╔══██╗ ╚██╗ ██╔╝
+ █████╗   ██████╔╝ ██║ ██║  ██║ ███████║  ╚████╔╝
+ ██╔══╝   ██╔══██╗ ██║ ██║  ██║ ██╔══██║   ╚██╔╝
+ ██║      ██║  ██║ ██║ ██████╔╝ ██║  ██║    ██║
+ ╚═╝      ╚═╝  ╚═╝ ╚═╝ ╚═════╝  ╚═╝  ╚═╝    ╚═╝\
+"""
+
+
+class WelcomeBanner(Static):
+    """Centered welcome content shown when chat is empty."""
+
+    def render(self) -> str:
+        return (
+            f"{FRIDAY_LOGO}\n\n"
+            "          What can I help with?\n\n"
+            "    Type a message below to get started.\n"
+            "    Use Ctrl+B for history, Ctrl+T for telemetry.\n"
+        )
 
 
 class ChatScreen(Screen):
@@ -29,10 +51,16 @@ class ChatScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Sidebar(classes="hidden")
-        yield VerticalScroll(id="messages")
-        yield ModeBar()
-        yield InputBar()
         yield TelemetryPanel(classes="hidden")
+        with Vertical(id="chat-body"):
+            yield VerticalScroll(id="messages")
+            yield ModeBar()
+            yield InputBar()
+
+    def on_mount(self) -> None:
+        """Show welcome banner in the empty messages area."""
+        messages = self.query_one("#messages", VerticalScroll)
+        messages.mount(WelcomeBanner(id="welcome-banner"))
 
     def add_message(
         self,
@@ -41,6 +69,14 @@ class ChatScreen(Screen):
         provider: str = "",
         latency: float = 0.0,
     ) -> MessageWidget:
+        """Add a message to the chat area."""
+        # Remove welcome banner on first message
+        try:
+            banner = self.query_one("#welcome-banner", WelcomeBanner)
+            banner.remove()
+        except Exception:
+            pass
+
         timestamp = datetime.now().strftime("%H:%M")
         msg = MessageWidget(
             content=content,
