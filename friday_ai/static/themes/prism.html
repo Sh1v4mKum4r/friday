@@ -128,18 +128,18 @@
 <div class="flex items-center gap-6">
 <span class="text-lg font-['Space_Grotesk'] font-bold tracking-tighter text-white">FRIDAY//KINETIC</span>
 <div class="hidden md:flex items-center gap-4 text-[10px] text-neutral-600">
-<span class="flex items-center gap-1"><span class="w-1 h-1 bg-red-600"></span> 12.4%_CPU</span>
-<span class="text-red-600 animate-pulse">● STEALTH_ACTIVE</span>
+<span class="flex items-center gap-1"><span class="w-1 h-1 bg-red-600"></span> <span id="telemetryLoad">0.0%</span>_CPU</span>
+<span class="text-red-600 animate-pulse">● <span id="telemetryStatus">ONLINE</span></span>
 </div>
 </div>
 <div class="flex items-center gap-1">
 <button id="settingsBtn" class="text-neutral-600 hover:text-red-600 text-[9px] font-bold uppercase tracking-widest transition-colors">
   CONFIG
 </button>
-<button class="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors glitch-hover">
+<button onclick="window.fridayToggleSettings()" class="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors glitch-hover" title="Settings">
 <span class="material-symbols-outlined text-[18px]">adjust</span>
 </button>
-<button class="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors glitch-hover">
+<button onclick="window.fridayNewConvo()" class="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors glitch-hover" title="New Session">
 <span class="material-symbols-outlined text-[18px]">lock</span>
 </button>
 </div>
@@ -183,14 +183,14 @@
 <div class="fixed bottom-0 left-0 w-full p-6 z-40 pointer-events-none">
 <div class="max-w-4xl mx-auto w-full pointer-events-auto">
 <div class="bg-black border-2 border-red-600 shard-rect flex items-center p-1 shadow-[0_0_50px_rgba(255,26,26,0.15)]">
-<button class="w-12 h-12 flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-black transition-all glitch-hover">
+<button onclick="window.fridayNewConvo()" class="w-12 h-12 flex items-center justify-center text-red-600 hover:bg-red-600 hover:text-black transition-all glitch-hover" title="New Session">
 <span class="material-symbols-outlined">add</span>
 </button>
 <div class="flex-1 px-4">
 <input id="messageInput" class="w-full bg-transparent border-none text-white font-['JetBrains_Mono'] font-bold text-xs focus:ring-0 placeholder:text-neutral-800 uppercase" placeholder="Input sequence command..." type="text"/>
 </div>
 <div class="flex items-center gap-1">
-<button class="w-12 h-12 flex items-center justify-center text-neutral-600 hover:text-white transition-colors">
+<button onclick="window.fridayToggleSettings()" class="w-12 h-12 flex items-center justify-center text-neutral-600 hover:text-white transition-colors" title="Settings">
 <span class="material-symbols-outlined text-[20px]">graphic_eq</span>
 </button>
 <button id="sendBtn" class="bg-red-600 text-black px-8 h-12 font-bold text-xs glitch-hover flex items-center gap-3">

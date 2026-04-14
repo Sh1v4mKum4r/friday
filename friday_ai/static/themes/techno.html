@@ -134,19 +134,19 @@
 <span class="text-xs font-bold text-secondary tracking-[0.2em]">FRIDAY_OS [V.4.4.2]</span>
 </div>
 <div class="hidden sm:flex font-label text-[9px] tracking-widest uppercase text-secondary/60">
-        SYS_LOAD: <span class="text-secondary ml-1">0.12ms</span> | MEM_FREE: <span class="text-secondary ml-1">94%</span>
+        SYS_LOAD: <span class="text-secondary ml-1" id="telemetryLatency">0.00ms</span> | STATUS: <span class="text-secondary ml-1" id="telemetryStatus">ONLINE</span>
 </div>
 <div class="flex items-center gap-4">
 <div class="flex gap-4 font-label text-[9px] tracking-widest uppercase text-white/40">
-<span class="hidden md:inline">U_TIME: 442H</span>
+<span class="hidden md:inline">U_TIME: <span id="telemetryUptime">0H</span></span>
 <span class="text-secondary"><span class="animate-pulse">●</span> LIVE</span>
 </div>
 <div class="flex gap-2 items-center">
 <button id="settingsBtn" class="text-secondary/40 hover:text-secondary terminal-border px-2 py-0.5 text-[9px] tracking-widest uppercase transition-all">
   CONFIG_
 </button>
-<span class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors">settings_input_component</span>
-<span class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors">grid_view</span>
+<span onclick="window.fridayToggleSettings()" class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors" title="Settings">settings_input_component</span>
+<span onclick="window.fridayNewConvo()" class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors" title="New Session">grid_view</span>
 </div>
 </div>
 </header>
@@ -162,13 +162,13 @@
 </div>
 <div class="flex items-center gap-2">
 <div class="flex-1 flex items-center terminal-border bg-surface-container-lowest relative group">
-<button class="px-3 text-white/30 hover:text-secondary transition-colors">
+<button onclick="window.fridayNewConvo()" class="px-3 text-white/30 hover:text-secondary transition-colors" title="New Session">
 <span class="material-symbols-outlined text-sm">attach_file</span>
 </button>
 <input id="messageInput" class="flex-1 bg-transparent border-none focus:ring-0 text-xs font-label text-on-surface placeholder:text-secondary/20 py-2" placeholder="&gt; EXECUTE_COMMAND_OR_QUERY..." type="text"/>
 <div class="flex items-center gap-2 pr-3">
-<button class="w-8 h-8 flex items-center justify-center text-white/30 hover:text-secondary">
-<span class="material-symbols-outlined text-sm">mic</span>
+<button onclick="window.fridayToggleSettings()" class="w-8 h-8 flex items-center justify-center text-white/30 hover:text-secondary" title="Settings">
+<span class="material-symbols-outlined text-sm">tune</span>
 </button>
 <button id="sendBtn" class="bg-secondary/10 hover:bg-secondary/20 text-secondary terminal-border px-4 py-1 text-[9px] tracking-widest uppercase transition-all">
                 SEND_
@@ -178,28 +178,28 @@
 <div class="hidden lg:flex items-center gap-6 border-l border-secondary/10 pl-4 h-8">
 <div class="flex flex-col">
 <span class="text-[8px] text-white/30 uppercase tracking-tighter">LATENCY</span>
-<span class="text-[10px] text-secondary">0.002MS</span>
+<span class="text-[10px] text-secondary" id="telemetryLatency2">0.00ms</span>
 </div>
 <div class="flex flex-col">
-<span class="text-[8px] text-white/30 uppercase tracking-tighter">RESOURCES</span>
-<span class="text-[10px] text-primary">1.2K_TOK</span>
+<span class="text-[8px] text-white/30 uppercase tracking-tighter">PROVIDERS</span>
+<span class="text-[10px] text-primary" id="telemetryProviders">0 active</span>
 </div>
 </div>
 </div>
 </footer>
 <!-- BottomNavBar (Mobile only) -->
 <nav class="md:hidden fixed bottom-0 right-0 left-0 w-full z-[60] flex justify-around items-center bg-background border-t-[0.5px] border-secondary/20 h-16">
-<button class="flex flex-col items-center justify-center text-secondary border-t border-secondary pt-1">
+<button onclick="document.getElementById('modeCommand').click()" class="flex flex-col items-center justify-center text-secondary border-t border-secondary pt-1">
 <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">terminal</span>
 <span class="text-[8px] mt-1 uppercase font-bold">Terminal</span>
 </button>
-<button class="flex flex-col items-center justify-center text-white/30">
+<button onclick="document.getElementById('modeChat').click()" class="flex flex-col items-center justify-center text-white/30">
 <span class="material-symbols-outlined text-sm">memory</span>
-<span class="text-[8px] mt-1 uppercase font-bold">Nodes</span>
+<span class="text-[8px] mt-1 uppercase font-bold">Chat</span>
 </button>
-<button class="flex flex-col items-center justify-center text-white/30">
+<button onclick="window.fridayToggleSettings()" class="flex flex-col items-center justify-center text-white/30">
 <span class="material-symbols-outlined text-sm">database</span>
-<span class="text-[8px] mt-1 uppercase font-bold">Cache</span>
+<span class="text-[8px] mt-1 uppercase font-bold">Config</span>
 </button>
 </nav>
 <!-- Empty State -->

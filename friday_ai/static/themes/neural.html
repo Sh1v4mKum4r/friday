@@ -129,13 +129,13 @@
 </div>
 <div class="flex items-center gap-6">
 <div class="flex gap-4">
-<div class="p-2 touch-button flex items-center justify-center">
+<div onclick="window.fridayToggleSettings()" class="p-2 touch-button flex items-center justify-center cursor-pointer" title="Telemetry">
 <span class="material-symbols-outlined text-primary/70 text-lg">monitoring</span>
 </div>
-<div class="p-2 touch-button flex items-center justify-center">
+<div onclick="window.fridayToggleSettings()" class="p-2 touch-button flex items-center justify-center cursor-pointer" title="MCP Servers">
 <span class="material-symbols-outlined text-primary/70 text-lg">dns</span>
 </div>
-<div class="p-2 touch-button flex items-center justify-center">
+<div onclick="window.fridayNewConvo()" class="p-2 touch-button flex items-center justify-center cursor-pointer" title="New Session">
 <span class="material-symbols-outlined text-primary/70 text-lg">settings_input_component</span>
 </div>
 </div>
@@ -151,7 +151,7 @@
 <div class="mb-4">
 <div class="flex justify-between items-end mb-1">
 <span class="font-mono text-[10px] text-primary/60">SYNAPTIC_LOAD</span>
-<span class="font-mono text-xs text-primary">12.4%</span>
+<span class="font-mono text-xs text-primary" id="telemetryLoad">0.0%</span>
 </div>
 <div class="data-bar"><div class="data-bar-fill w-[12.4%]"></div></div>
 </div>
@@ -165,7 +165,7 @@
 <div>
 <div class="flex justify-between items-end mb-1">
 <span class="font-mono text-[10px] text-primary/60">LATENCY_NODE</span>
-<span class="font-mono text-xs text-primary">0.04ms</span>
+<span class="font-mono text-xs text-primary" id="telemetryLatency">0.00ms</span>
 </div>
 <div class="flex gap-0.5 h-6 items-end">
 <div class="flex-1 bg-primary/20 h-[30%]"></div>
@@ -227,7 +227,7 @@
 <span class="material-symbols-outlined text-primary/60">terminal</span>
 <input id="messageInput" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-primary/30 font-mono text-sm tracking-widest uppercase" placeholder="Input_Signal_Awaiting..." type="text"/>
 <div class="flex items-center gap-4">
-<button class="text-primary/40 hover:text-primary transition-colors">
+<button onclick="window.fridayNewConvo()" class="text-primary/40 hover:text-primary transition-colors" title="New Session">
 <span class="material-symbols-outlined">attachment</span>
 </button>
 <button id="sendBtn" class="touch-button p-2.5 px-6 flex items-center justify-center text-primary group">
@@ -244,15 +244,15 @@
 </div>
 <!-- Navigation Dock -->
 <nav class="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 flex items-center bg-surface-variant/40 backdrop-blur-2xl p-1.5 border border-primary/20 angular-panel hidden lg:flex">
-<button class="touch-button flex items-center gap-3 px-6 py-2 bg-primary/20 text-primary">
+<button onclick="document.getElementById('modeChat').click()" class="touch-button flex items-center gap-3 px-6 py-2 bg-primary/20 text-primary">
 <span class="material-symbols-outlined text-lg">message</span>
 <span class="font-headline text-[10px] font-bold tracking-widest uppercase">Nodes</span>
 </button>
-<button class="flex items-center gap-3 px-6 py-2 text-primary/40 hover:text-primary transition-all">
+<button onclick="document.getElementById('modeCommand').click()" class="flex items-center gap-3 px-6 py-2 text-primary/40 hover:text-primary transition-all">
 <span class="material-symbols-outlined text-lg">schema</span>
 <span class="font-headline text-[10px] font-bold tracking-widest uppercase">Flow</span>
 </button>
-<button class="flex items-center gap-3 px-6 py-2 text-primary/40 hover:text-primary transition-all">
+<button onclick="document.getElementById('modeSearch').click()" class="flex items-center gap-3 px-6 py-2 text-primary/40 hover:text-primary transition-all">
 <span class="material-symbols-outlined text-lg">manage_search</span>
 <span class="font-headline text-[10px] font-bold tracking-widest uppercase">Query</span>
 </button>
