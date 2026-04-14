@@ -221,23 +221,57 @@ class Agent:
     # ------------------------------------------------------------------
 
     _DIRECT_COMMANDS: list[tuple[str, str, dict]] = [
-        # (regex pattern, tool_name, args or arg_builder)
+        # --- Brightness ---
         (r"(?:increase|raise|up)\s*(?:the\s*)?brightness", "brightness", {"action": "up"}),
         (r"(?:decrease|lower|reduce|dim|down)\s*(?:the\s*)?brightness", "brightness", {"action": "down"}),
         (r"(?:set|change)\s*(?:the\s*)?brightness\s*(?:to\s*)?(\d+)", "brightness", {"action": "set {0}"}),
         (r"(?:get|show|what|check).*brightness", "brightness", {"action": "get"}),
         (r"max(?:imum)?\s*brightness", "brightness", {"action": "max"}),
         (r"min(?:imum)?\s*brightness", "brightness", {"action": "min"}),
-        (r"(?:increase|raise|up)\s*(?:the\s*)?volume", "volume", {"action": "up"}),
-        (r"(?:decrease|lower|reduce|down)\s*(?:the\s*)?volume", "volume", {"action": "down"}),
-        (r"mute\s*(?:the\s*)?(?:audio|volume|sound)?", "volume", {"action": "mute"}),
-        (r"unmute", "volume", {"action": "unmute"}),
+        # --- Volume ---
+        (r"(?:increase|raise|up|louder)\s*(?:the\s*)?volume", "volume", {"action": "up"}),
+        (r"(?:decrease|lower|reduce|down|quieter)\s*(?:the\s*)?volume", "volume", {"action": "down"}),
+        (r"(?:set|change)\s*(?:the\s*)?volume\s*(?:to\s*)?(\d+)", "volume", {"action": "set {0}"}),
+        (r"^mute$|mute\s*(?:the\s*)?(?:audio|volume|sound)", "volume", {"action": "mute"}),
+        (r"^unmute$|unmute\s*(?:the\s*)?(?:audio|volume|sound)", "volume", {"action": "unmute"}),
+        (r"toggle\s*mute", "volume", {"action": "toggle"}),
+        (r"(?:get|show|what|check).*volume", "volume", {"action": "get"}),
+        # --- Media ---
         (r"(?:play|resume)\s*(?:music|media|song)?", "media", {"action": "play"}),
-        (r"pause\s*(?:music|media|song)?", "media", {"action": "pause"}),
+        (r"^pause$|pause\s*(?:music|media|song)", "media", {"action": "pause"}),
         (r"(?:next|skip)\s*(?:track|song)?", "media", {"action": "next"}),
         (r"(?:prev|previous)\s*(?:track|song)?", "media", {"action": "previous"}),
+        (r"(?:stop)\s*(?:music|media|song|playing)", "media", {"action": "stop"}),
+        (r"(?:what(?:'s|\s*is)\s*playing|now\s*playing|current\s*(?:song|track))", "media", {"action": "info"}),
+        # --- Screenshot ---
         (r"take\s*(?:a\s*)?(?:full\s*)?screenshot", "screenshot", {"mode": "full"}),
-        (r"screenshot\s*(?:of\s*)?region", "screenshot", {"mode": "region"}),
+        (r"screenshot\s*(?:of\s*)?(?:a\s*)?region", "screenshot", {"mode": "region"}),
+        # --- Clipboard ---
+        (r"(?:get|show|read|what(?:'s|\s*is)\s*(?:in|on))\s*(?:the\s*)?clipboard", "clipboard_get", {}),
+        (r"(?:copy|set)\s*(?:to\s*)?clipboard\s+(.+)", "clipboard_set", {"content": "{0}"}),
+        # --- Notifications ---
+        (r"(?:send|show)\s*(?:a\s*)?notif(?:ication)?\s*[:\-]?\s*(.+)", "notify", {"message": "{0}"}),
+        # --- System info ---
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?(?:cpu|processor)\s*(?:temp|temperature|info)?", "sysinfo", {"mode": "cpu"}),
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?(?:ram|memory)\s*(?:usage)?", "sysinfo", {"mode": "ram"}),
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?(?:disk|storage)\s*(?:space|usage)?", "sysinfo", {"mode": "disk"}),
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?battery", "sysinfo", {"mode": "battery"}),
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?gpu\s*(?:temp|temperature|info|usage)?", "sysinfo", {"mode": "gpu"}),
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?(?:ip|network|wifi|connection)", "sysinfo", {"mode": "network"}),
+        (r"(?:show|get)\s*(?:my\s*)?(?:sys(?:tem)?\s*)?info", "sysinfo", {"mode": "all"}),
+        (r"(?:show|get|what(?:'s|\s*is))\s*(?:my\s*)?bluetooth", "sysinfo", {"mode": "bluetooth"}),
+        # --- DE commands ---
+        (r"(?:move|switch\s*to)\s*workspace\s*(\d+)", "de_command", {"cmd": "workspace {0}"}),
+        (r"(?:focus|switch)\s*(?:window\s*)?(?:to\s*)?(?:the\s*)?(left|right|up|down)", "de_command", {"cmd": "focus {0}"}),
+        (r"move\s*window\s*(left|right|up|down)", "de_command", {"cmd": "move window {0}"}),
+        (r"^fullscreen$|toggle\s*fullscreen", "de_command", {"cmd": "fullscreen"}),
+        (r"^float$|toggle\s*float", "de_command", {"cmd": "float"}),
+        (r"close\s*(?:this\s*)?window", "de_command", {"cmd": "close"}),
+        (r"(?:launch|open)\s+(\S+)", "de_command", {"cmd": "launch {0}"}),
+        # --- File operations ---
+        (r"(?:read|show|cat)\s+(?:file\s+)?([/~]\S+)", "file_read", {"path": "{0}"}),
+        # --- Cron ---
+        (r"(?:show|list)\s*(?:my\s*)?(?:cron|scheduled)\s*(?:jobs|tasks)?", "cron", {"action": "list"}),
     ]
 
     # Greeting patterns → instant responses (no LLM, no tools)
@@ -301,11 +335,16 @@ class Agent:
                         args[k] = v
 
                 try:
-                    result = self.tool_loader.execute(tool_name, args)
-                except (KeyError, Exception):
-                    # Tool might not be in filtered set — reload all and try
-                    self.tool_loader.discover()
-                    result = self.tool_loader.execute(tool_name, args)
+                    # Direct shortcuts bypass disabled check — call the tool's run() directly
+                    tool = self.tool_loader.tools.get(tool_name)
+                    if tool is None:
+                        self.tool_loader.discover()
+                        tool = self.tool_loader.tools.get(tool_name)
+                    if tool is None:
+                        continue  # Tool doesn't exist, try next pattern
+                    result = str(tool.run(**args))
+                except Exception as e:
+                    result = f"Error: {e}"
                 return ProviderResponse(
                     content=result,
                     provider_name="direct",
