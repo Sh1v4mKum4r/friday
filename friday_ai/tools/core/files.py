@@ -13,7 +13,7 @@ def run(path: str) -> str:
 
     Returns an error string if the file is missing or is not a regular file.
     """
-    p = Path(path)
+    p = Path(path).expanduser()
     try:
         if not p.exists():
             return f"Error: file not found: {path}"

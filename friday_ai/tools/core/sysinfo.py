@@ -128,13 +128,25 @@ def _network_info() -> str:
     return "\n".join(parts)
 
 
+def _bluetooth_info() -> str:
+    try:
+        result = subprocess.run(["rfkill", "list", "bluetooth"], capture_output=True, text=True, timeout=5)
+        if result.returncode == 0:
+            if "Soft blocked: yes" in result.stdout:
+                return "Bluetooth: OFF (blocked)"
+            return "Bluetooth: ON"
+        return "Bluetooth: unknown"
+    except Exception:
+        return "Bluetooth: unknown"
+
+
 def run(mode: str = "all") -> str:
     """Get system information.
 
     Parameters
     ----------
     mode:
-        'all', 'cpu', 'ram', 'disk', 'battery', 'gpu', 'network'
+        'all', 'cpu', 'ram', 'disk', 'battery', 'gpu', 'network', 'bluetooth'
     """
     lower = mode.strip().lower()
 
@@ -145,6 +157,7 @@ def run(mode: str = "all") -> str:
         "battery": _battery_info,
         "gpu": _gpu_info,
         "network": _network_info,
+        "bluetooth": _bluetooth_info,
     }
 
     if lower == "all":

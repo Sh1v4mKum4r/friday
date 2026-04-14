@@ -148,60 +148,91 @@ def _hyprland(cmd: str, env: dict) -> str:
 def _cosmic(cmd: str, env: dict) -> str:
     lower = cmd.lower()
 
-    # Workspace switch
+    # Workspace switch: "workspace N"
     if lower.startswith("workspace "):
         num = cmd.split(None, 1)[1]
-        # Cosmic uses DBus to switch workspaces
-        return _cosmic_dbus("SwitchToWorkspace", f'u {num}', env)
+        if num.isdigit():
+            # Use wtype to simulate Super+N
+            return _run(["wtype", "-M", "logo", "-k", num, "-m", "logo"], env)
+        return f"Error: invalid workspace number '{num}'"
 
-    # Launch app
+    # Launch app: "launch <app>"
     if lower.startswith("launch "):
         app = cmd.split(None, 1)[1]
-        return _run(["xdg-open", app] if "/" in app else ["cosmic-app-launcher", app], env)
+        if shutil.which("cosmic-app-launcher"):
+            return _run(["cosmic-app-launcher", "--", app], env)
+        return _run(["xdg-open", app] if "/" in app else ["gio", "launch", app], env)
 
     # Window focus
     if lower.startswith("focus "):
-        direction = cmd.split(None, 1)[1]
-        direction_map = {"left": "Left", "right": "Right", "up": "Up", "down": "Down"}
-        cosmic_dir = direction_map.get(direction.lower(), direction)
-        return _cosmic_dbus("FocusDirection", f's "{cosmic_dir}"', env)
+        direction = cmd.split(None, 1)[1].lower()
+        key_map = {"left": "Left", "right": "Right", "up": "Up", "down": "Down"}
+        if direction in key_map:
+            return _run(["wtype", "-M", "logo", "-k", key_map[direction], "-m", "logo"], env)
+        return f"Error: unknown focus direction '{direction}'"
 
     # Window move
     if lower.startswith("move window "):
-        direction = cmd.split(None, 2)[2]
-        direction_map = {"left": "Left", "right": "Right", "up": "Up", "down": "Down"}
-        cosmic_dir = direction_map.get(direction.lower(), direction)
-        return _cosmic_dbus("MoveDirection", f's "{cosmic_dir}"', env)
+        direction = cmd.split(None, 2)[2].lower()
+        key_map = {"left": "Left", "right": "Right", "up": "Up", "down": "Down"}
+        if direction in key_map:
+            return _run(["wtype", "-M", "logo", "-M", "shift", "-k", key_map[direction], "-m", "shift", "-m", "logo"], env)
+        return f"Error: unknown move direction '{direction}'"
 
-    # Fullscreen
+    # Fullscreen / Float / Close
     if lower == "fullscreen":
-        return _cosmic_dbus("ToggleFullscreen", "", env)
-
-    # Float
+        return _run(["wtype", "-M", "logo", "-k", "F11", "-m", "logo"], env)
     if lower == "float":
-        return _cosmic_dbus("ToggleFloating", "", env)
+        return _run(["wtype", "-M", "logo", "-k", "g", "-m", "logo"], env)
+    if lower == "close":
+        return _run(["wtype", "-M", "logo", "-k", "q", "-m", "logo"], env)
 
-    # List windows — try wlrctl if available
-    if lower in ("list windows", "clients"):
+    # Volume / Brightness via CosmicSettingsDaemon (Real DBus)
+    if lower == "volume up":
+        return _cosmic_settings_daemon("VolumeUp", "", env)
+    if lower == "volume down":
+        return _cosmic_settings_daemon("VolumeDown", "", env)
+    if lower == "brightness up":
+        return _cosmic_settings_daemon("IncreaseDisplayBrightness", "", env)
+    if lower == "brightness down":
+        return _cosmic_settings_daemon("DecreaseDisplayBrightness", "", env)
+
+    # List windows / workspaces — try wlrctl if available
+    if lower in ("list windows", "clients", "list workspaces", "workspaces"):
         if shutil.which("wlrctl"):
-            return _run(["wlrctl", "toplevel", "list"], env)
-        return "Error: wlrctl not installed. Install it for window listing on Cosmic."
+            return _run(["wlrctl", "toplevel" if "window" in lower else "workspace", "list"], env)
+        return "Error: wlrctl not installed. Install it for listing on Cosmic."
 
-    # List workspaces
-    if lower in ("list workspaces", "workspaces"):
-        return _cosmic_dbus("GetWorkspaces", "", env)
+    # Fallback: try as raw busctl call if it looks like one
+    if "." in cmd:
+        return _cosmic_dbus(cmd, "", env)
 
-    # Fallback: try as raw busctl call
-    return _cosmic_dbus(cmd, "", env)
+    return f"Error: unknown Cosmic command '{cmd}'"
 
 
 def _cosmic_dbus(method: str, args: str, env: dict) -> str:
     """Call a method on com.system76.CosmicComp via busctl."""
+    # Note: com.system76.CosmicComp might be missing on some versions
     cmd_parts = [
         "busctl", "--user", "call",
         "com.system76.CosmicComp",
         "/com/system76/CosmicComp",
         "com.system76.CosmicComp",
+        method,
+    ]
+    if args:
+        cmd_parts.extend(args.split())
+
+    return _run(cmd_parts, env)
+
+
+def _cosmic_settings_daemon(method: str, args: str, env: dict) -> str:
+    """Call a method on com.system76.CosmicSettingsDaemon via busctl."""
+    cmd_parts = [
+        "busctl", "--user", "call",
+        "com.system76.CosmicSettingsDaemon",
+        "/com/system76/CosmicSettingsDaemon",
+        "com.system76.CosmicSettingsDaemon",
         method,
     ]
     if args:
