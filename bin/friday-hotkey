@@ -1,15 +1,40 @@
 #!/bin/bash
-# friday-hotkey — Open the Friday chat UI
+# friday-hotkey — Open Friday as a floating app window
 # Triggered by Super+F keybind
 
 PORT=65535
+URL="http://127.0.0.1:$PORT"
 
 # Check if backend is running
-if ! curl -s "http://127.0.0.1:$PORT/health" > /dev/null 2>&1; then
+if ! curl -s "$URL/health" > /dev/null 2>&1; then
     notify-send "Friday" "Backend not running. Starting..."
     /home/sh4d0w/Projects/friday/start.sh --daemon &
     sleep 5
 fi
 
-# Open the chat UI in the default browser
-xdg-open "http://127.0.0.1:$PORT" 2>/dev/null
+# Check if Friday window is already open — focus it
+FRIDAY_WID=$(xdotool search --name "Friday" 2>/dev/null | head -1)
+if [ -n "$FRIDAY_WID" ]; then
+    # Already open, just focus it
+    xdotool windowactivate "$FRIDAY_WID" 2>/dev/null
+    exit 0
+fi
+
+# Open as a standalone app window (not a browser tab)
+# Try in order: chromium --app, google-chrome --app, firefox --new-window (kiosk)
+if command -v chromium &>/dev/null; then
+    chromium --app="$URL" \
+        --window-size=500,700 \
+        --class="friday-chat" \
+        --user-data-dir="$HOME/.config/friday/browser-profile" &
+elif command -v google-chrome-stable &>/dev/null; then
+    google-chrome-stable --app="$URL" \
+        --window-size=500,700 \
+        --class="friday-chat" \
+        --user-data-dir="$HOME/.config/friday/browser-profile" &
+elif command -v firefox &>/dev/null; then
+    firefox --new-window "$URL" &
+else
+    # Fallback: use xdg-open
+    xdg-open "$URL" &
+fi
