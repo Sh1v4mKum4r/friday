@@ -1,0 +1,15 @@
+# Instructions:
+
+### Manual Brightness Control:
+
+In some systems, you can directly modify your display settings using tools like xbacklight. To use it:
+
+1. Open a terminal.
+2. Run the following command to set the brightness level (replace  with desired value from 0 to 1):
+	xbacklight -set level.
+
+For example, if you want to set the display's backlight to half of its maximum intensity, you would run:
+	xbacklight -set 50%
+3. Close the terminal and observe the changes.
+
+Keep in mind that some systems may not support xbacklight or require root permissions for modification.

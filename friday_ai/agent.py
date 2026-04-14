@@ -94,6 +94,15 @@ class Agent:
         identity = load_identity(self.config_dir)
         memory_context = self.memory.get_context_for_prompt(query=message)
 
+        # Direct tool shortcuts — bypass LLM for obvious commands
+        direct = self._try_direct_tool(message)
+        if direct:
+            self.history.append({"role": "user", "content": message})
+            self.history.append({"role": "assistant", "content": direct.content})
+            self.memory.append_daily_log(f"[user] {message}")
+            self.memory.append_daily_log(f"[assistant] {direct.content}")
+            return direct
+
         # Smart tool filtering — only send relevant tools to keep LLM fast
         intent = classify_intent(message)
         tool_schemas = self._filter_tools(intent, message)
@@ -208,6 +217,64 @@ class Agent:
             yield {"token": "", "done": True, "error": str(e), "provider": "error", "latency": 0}
 
     # ------------------------------------------------------------------
+    # Direct tool shortcuts — bypass LLM for obvious commands
+    # ------------------------------------------------------------------
+
+    _DIRECT_COMMANDS: list[tuple[str, str, dict]] = [
+        # (regex pattern, tool_name, args or arg_builder)
+        (r"(?:increase|raise|up)\s*(?:the\s*)?brightness", "brightness", {"action": "up"}),
+        (r"(?:decrease|lower|reduce|dim|down)\s*(?:the\s*)?brightness", "brightness", {"action": "down"}),
+        (r"(?:set|change)\s*(?:the\s*)?brightness\s*(?:to\s*)?(\d+)", "brightness", {"action": "set {0}"}),
+        (r"(?:get|show|what|check).*brightness", "brightness", {"action": "get"}),
+        (r"max(?:imum)?\s*brightness", "brightness", {"action": "max"}),
+        (r"min(?:imum)?\s*brightness", "brightness", {"action": "min"}),
+        (r"(?:increase|raise|up)\s*(?:the\s*)?volume", "volume", {"action": "up"}),
+        (r"(?:decrease|lower|reduce|down)\s*(?:the\s*)?volume", "volume", {"action": "down"}),
+        (r"mute\s*(?:the\s*)?(?:audio|volume|sound)?", "volume", {"action": "mute"}),
+        (r"unmute", "volume", {"action": "unmute"}),
+        (r"(?:play|resume)\s*(?:music|media|song)?", "media", {"action": "play"}),
+        (r"pause\s*(?:music|media|song)?", "media", {"action": "pause"}),
+        (r"(?:next|skip)\s*(?:track|song)?", "media", {"action": "next"}),
+        (r"(?:prev|previous)\s*(?:track|song)?", "media", {"action": "previous"}),
+        (r"take\s*(?:a\s*)?(?:full\s*)?screenshot", "screenshot", {"mode": "full"}),
+        (r"screenshot\s*(?:of\s*)?region", "screenshot", {"mode": "region"}),
+    ]
+
+    def _try_direct_tool(self, message: str) -> ProviderResponse | None:
+        """Check if message matches a direct tool shortcut.
+
+        Returns a ProviderResponse if matched, None otherwise.
+        Bypasses the LLM entirely for obvious single-tool commands.
+        """
+        import re
+        msg = message.lower().strip()
+
+        for pattern, tool_name, args_template in self._DIRECT_COMMANDS:
+            match = re.search(pattern, msg)
+            if match:
+                # Build args, replacing {0}, {1} with capture groups
+                args = {}
+                for k, v in args_template.items():
+                    if isinstance(v, str) and "{0}" in v:
+                        groups = match.groups()
+                        args[k] = v.format(*groups) if groups else v
+                    else:
+                        args[k] = v
+
+                try:
+                    result = self.tool_loader.execute(tool_name, args)
+                except (KeyError, Exception):
+                    # Tool might not be in filtered set — reload all and try
+                    self.tool_loader.discover()
+                    result = self.tool_loader.execute(tool_name, args)
+                return ProviderResponse(
+                    content=result,
+                    provider_name="direct",
+                )
+
+        return None
+
+    # ------------------------------------------------------------------
     # Smart model selection
     # ------------------------------------------------------------------
 
@@ -257,7 +324,7 @@ class Agent:
         "cpu|ram|disk|battery|gpu|temperature|uptime|ip address|system info": {"sysinfo"},
         "notify|notification|alert|remind": {"notify"},
         "file|read file|write file|cat |create file": {"file_read", "file_write"},
-        "bluetooth": {"bluetooth"},
+        "bluetooth|wifi|network|connect|disconnect|vpn|proxy": {"bluetooth", "sysinfo"},
         "mouse|click|cursor|drag": {"mouse"},
         "keyboard|type|press key|hotkey": {"keyboard"},
         "screen read|ocr|what.* on screen": {"screen_read"},
