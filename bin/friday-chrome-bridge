@@ -1,16 +1,11 @@
 #!/bin/bash
-# friday-chrome-bridge — Runs headless Chrome with AI Mode API extension
-# for the Google AI provider. Keeps Chrome alive in background on a virtual display.
+# friday-chrome-bridge — Manages headless Chrome for AI Mode API extension
 #
 # Usage:
-#   friday-chrome-bridge start   — Start headless Chrome with extension
-#   friday-chrome-bridge stop    — Stop the background Chrome
-#   friday-chrome-bridge status  — Check if running
-#
-# Prerequisites:
-#   1. Install xorg-server-xvfb: sudo pacman -S xorg-server-xvfb
-#   2. Install AI Mode API extension in Chrome first (visible mode)
-#   3. Note your extension ID from chrome://extensions
+#   friday-chrome-bridge setup    — Open Chrome visually to install extension (one-time)
+#   friday-chrome-bridge start    — Start headless Chrome with extension
+#   friday-chrome-bridge stop     — Stop the background Chrome
+#   friday-chrome-bridge status   — Check if running
 
 CHROME_BIN="google-chrome-stable"
 DISPLAY_NUM=99
@@ -19,19 +14,37 @@ XVFB_PIDFILE="/tmp/friday-xvfb.pid"
 CHROME_PROFILE="$HOME/.config/friday/chrome-bridge-profile"
 
 case "${1:-}" in
+    setup)
+        echo "Opening Chrome with Friday bridge profile..."
+        echo "Install the AI Mode API extension:"
+        echo "  1. Go to https://aimodeapi.com"
+        echo "  2. Click 'Install Extension'"
+        echo "  3. Enable it and wait for 'Connected' status"
+        echo "  4. Close Chrome when done"
+        echo ""
+        mkdir -p "$CHROME_PROFILE"
+        $CHROME_BIN \
+            --no-first-run \
+            --user-data-dir="$CHROME_PROFILE" \
+            "https://aimodeapi.com" 2>/dev/null
+        echo "Setup complete. Now run: friday-chrome-bridge start"
+        ;;
+
     start)
         if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
             echo "Already running (PID: $(cat $PIDFILE))"
             exit 0
         fi
 
-        echo "Starting virtual display..."
-        Xvfb :$DISPLAY_NUM -screen 0 1280x720x24 &
+        if [ ! -d "$CHROME_PROFILE/Default" ]; then
+            echo "No profile found. Run 'friday-chrome-bridge setup' first."
+            exit 1
+        fi
+
+        Xvfb :$DISPLAY_NUM -screen 0 1280x720x24 >/dev/null 2>&1 &
         echo $! > "$XVFB_PIDFILE"
         sleep 1
 
-        echo "Starting Chrome on :$DISPLAY_NUM (X11 mode)..."
-        # Force X11 backend + use virtual display, unset Wayland vars
         env \
             DISPLAY=:$DISPLAY_NUM \
             WAYLAND_DISPLAY="" \
@@ -47,16 +60,7 @@ case "${1:-}" in
             >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
 
-        echo "Chrome bridge running."
-        echo ""
-        echo "IMPORTANT: You need to install the AI Mode API extension manually first:"
-        echo "  1. Open Chrome normally: google-chrome-stable"
-        echo "  2. Go to: https://aimodeapi.com"
-        echo "  3. Install the extension"
-        echo "  4. Copy the profile: cp -r ~/.config/google-chrome/Default/Extensions/* $CHROME_PROFILE/Default/Extensions/"
-        echo "  5. Restart: friday-chrome-bridge stop && friday-chrome-bridge start"
-        echo ""
-        echo "Once set up, the AI Mode API URL will work with friday-send even without a visible Chrome window."
+        echo "Chrome bridge running (headless, PID: $(cat $PIDFILE))"
         ;;
 
     stop)
@@ -81,9 +85,11 @@ case "${1:-}" in
         ;;
 
     *)
-        echo "Usage: friday-chrome-bridge [start|stop|status]"
+        echo "Usage: friday-chrome-bridge <command>"
         echo ""
-        echo "Runs Chrome headlessly on a virtual display so the AI Mode API"
-        echo "extension can serve requests without a visible browser window."
+        echo "  setup    Open Chrome to install AI Mode API extension (one-time)"
+        echo "  start    Start headless Chrome (no visible window)"
+        echo "  stop     Stop headless Chrome"
+        echo "  status   Check if running"
         ;;
 esac
