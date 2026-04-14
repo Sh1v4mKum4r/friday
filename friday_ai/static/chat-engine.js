@@ -547,6 +547,96 @@ window.fridayReconnectMCP = async function() {
   }
 };
 
+// Save current session to disk
+window.fridaySaveSession = async function() {
+  try {
+    await fetch(API + '/session/save', { method: 'POST' });
+    window.fridayToast('Session saved');
+  } catch(e) {
+    window.fridayToast('Failed to save session');
+  }
+};
+
+// Load last session from disk
+window.fridayLoadSession = async function() {
+  try {
+    var res = await fetch(API + '/session/load', { method: 'POST' });
+    var data = await res.json();
+    if (data.status === 'loaded' && data.history) {
+      conversations = [{ id: 'convo_' + Date.now(), title: 'Restored Session', messages: [], createdAt: Date.now() }];
+      var convo = conversations[0];
+      for (var i = 0; i < data.history.length; i++) {
+        var msg = data.history[i];
+        convo.messages.push({
+          role: msg.role === 'assistant' ? 'friday' : msg.role,
+          text: msg.content,
+          provider: null,
+          timestamp: Date.now() - (data.history.length - i) * 1000
+        });
+      }
+      activeConvoId = convo.id;
+      saveStorage();
+      loadConversation(convo.id);
+      window.fridayToast('Session restored (' + data.history.length + ' messages)');
+    } else {
+      window.fridayToast('No saved session found');
+    }
+  } catch(e) {
+    window.fridayToast('Failed to load session');
+  }
+};
+
+// Paste clipboard content into input
+window.fridayPasteClipboard = async function() {
+  try {
+    var text = await navigator.clipboard.readText();
+    if (text && dom.messageInput) {
+      dom.messageInput.value = text;
+      dom.messageInput.focus();
+      window.fridayToast('Pasted from clipboard');
+    } else {
+      window.fridayToast('Clipboard is empty');
+    }
+  } catch(e) {
+    window.fridayToast('Clipboard access denied');
+  }
+};
+
+// Voice input via Web Speech API
+window.fridayVoiceInput = function() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    window.fridayToast('Voice input not supported in this browser');
+    return;
+  }
+  var recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  window.fridayToast('Listening...');
+  var micBtn = document.querySelector('[data-voice-btn]');
+  if (micBtn) micBtn.style.color = '#ff1a1a';
+
+  recognition.onresult = function(event) {
+    var transcript = event.results[0][0].transcript;
+    if (dom.messageInput) {
+      dom.messageInput.value = transcript;
+      dom.messageInput.focus();
+    }
+    window.fridayToast('Got: "' + transcript.substring(0, 40) + '..."');
+    if (micBtn) micBtn.style.color = '';
+  };
+  recognition.onerror = function(event) {
+    window.fridayToast('Voice error: ' + event.error);
+    if (micBtn) micBtn.style.color = '';
+  };
+  recognition.onend = function() {
+    if (micBtn) micBtn.style.color = '';
+  };
+  recognition.start();
+};
+
 var THEMES = [
   { id: 'obsidian', name: 'Obsidian', color: '#ba9eff', desc: 'Editorial glass' },
   { id: 'techno', name: 'Techno', color: '#4ae176', desc: 'Terminal brutalist' },
