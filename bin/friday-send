@@ -1,6 +1,7 @@
 #!/bin/bash
 # friday-send — Send a one-shot stateless prompt to Friday
 # Usage: friday-send "your prompt"
+#        friday-send search "query"     → forces Google AI
 #        echo "your prompt" | friday-send
 
 PORT=65535
@@ -24,12 +25,35 @@ if [ -z "$PROMPT" ]; then
     exit 1
 fi
 
-# Send stateless request, extract response robustly
+# Detect mode prefix
+FORCE_PROVIDER=""
+case "$PROMPT" in
+    search\ *)
+        FORCE_PROVIDER="google_ai"
+        PROMPT="${PROMPT#search }"
+        ;;
+    google\ *)
+        FORCE_PROVIDER="google_ai"
+        PROMPT="${PROMPT#google }"
+        ;;
+    cloud\ *)
+        FORCE_PROVIDER="claude-cli"
+        PROMPT="${PROMPT#cloud }"
+        ;;
+esac
+
+# Send stateless request
 python3 -c "
 import json, sys, urllib.request
 
 prompt = sys.argv[1]
-data = json.dumps({'message': prompt, 'stateless': True}).encode()
+force = sys.argv[2] if len(sys.argv) > 2 else ''
+
+payload = {'message': prompt, 'stateless': True}
+if force:
+    payload['force_provider'] = force
+
+data = json.dumps(payload).encode()
 req = urllib.request.Request(
     '$API/chat',
     data=data,
@@ -45,4 +69,4 @@ try:
             print('(no response)')
 except Exception as e:
     print(f'Error: {e}')
-" "$PROMPT"
+" "$PROMPT" "$FORCE_PROVIDER"
