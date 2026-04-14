@@ -75,6 +75,8 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
             --user-data-dir="$CHROME_PROFILE" \
             --disable-features=WaylandWindowDecorations \
             --ozone-platform=x11 \
+            --restore-last-session \
+            "https://www.google.com" \
             >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
 
