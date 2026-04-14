@@ -23,13 +23,13 @@ class TestFridayApp:
 
     @pytest.mark.asyncio
     async def test_theme_defaults_to_obsidian(self):
-        app = FridayApp(no_connect=True)
+        app = FridayApp(no_connect=True, theme="obsidian")
         async with app.run_test() as pilot:
             assert pilot.app._friday_theme == "obsidian"
 
     @pytest.mark.asyncio
     async def test_cycle_theme(self):
-        app = FridayApp(no_connect=True)
+        app = FridayApp(no_connect=True, theme="obsidian")
         async with app.run_test() as pilot:
             pilot.app.action_cycle_theme()
             assert pilot.app._friday_theme == "neural"
@@ -79,7 +79,7 @@ class TestFridayAppIntegration:
     @pytest.mark.asyncio
     async def test_theme_cycle_keybind(self):
         """Ctrl+Shift+T cycles themes."""
-        app = FridayApp(no_connect=True)
+        app = FridayApp(no_connect=True, theme="obsidian")
         async with app.run_test() as pilot:
             # Read the initial theme attribute name from existing tests
             initial = pilot.app._friday_theme

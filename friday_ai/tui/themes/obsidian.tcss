@@ -116,6 +116,13 @@ ModeBar {
     width: 100%;
 }
 
+#welcome-hints {
+    text-align: center;
+    color: #8a8694;
+    margin: 2 0 0 0;
+    width: 100%;
+}
+
 #quick-action-grid {
     width: 80%;
     max-width: 100;

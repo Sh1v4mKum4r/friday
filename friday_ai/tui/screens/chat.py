@@ -59,6 +59,10 @@ class WelcomePanel(Vertical):
         with ItemGrid(id="quick-action-grid", min_column_width=36):
             for title, desc in QUICK_ACTIONS:
                 yield QuickActionCard(title, desc, classes="quick-action")
+        yield Label(
+            "  Tab  Navigate cards    Enter  Select    i  Type a message    ctrl+s  Settings",
+            id="welcome-hints",
+        )
 
 
 class ChatScreen(Screen):
