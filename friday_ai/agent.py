@@ -240,14 +240,53 @@ class Agent:
         (r"screenshot\s*(?:of\s*)?region", "screenshot", {"mode": "region"}),
     ]
 
+    # Greeting patterns → instant responses (no LLM, no tools)
+    _GREETINGS: dict[str, list[str]] = {
+        r"^(?:hi|hello|hey|yo|sup)[\s!.?]*$": [
+            "Hey! What can I do for you?",
+            "Hello! Ready to help.",
+            "Hey there! What's up?",
+        ],
+        r"^(?:good\s*(?:morning|afternoon|evening))[\s!.?]*$": [
+            "Good to see you! What do you need?",
+            "Hey! How can I help today?",
+        ],
+        r"^(?:thanks?|thank\s*you|thx|cheers)[\s!.?]*$": [
+            "Anytime.",
+            "No problem.",
+            "You got it.",
+        ],
+        r"^(?:bye|goodbye|see\s*(?:you|ya)|later|good\s*night)[\s!.?]*$": [
+            "Later!",
+            "See you around.",
+            "Catch you later.",
+        ],
+        r"^(?:how\s*are\s*you|what'?s\s*up|how'?s\s*it\s*going)[\s!.?]*$": [
+            "Running smooth. What do you need?",
+            "All systems go. What can I do?",
+        ],
+        r"^(?:who\s*are\s*you|what\s*(?:are|can)\s*you.*)[\s!.?]*$": [
+            "I'm Friday, your AI system assistant. I can run commands, control your desktop, search the web, and more. Try asking me something.",
+        ],
+    }
+
     def _try_direct_tool(self, message: str) -> ProviderResponse | None:
-        """Check if message matches a direct tool shortcut.
+        """Check if message matches a greeting or a direct tool shortcut.
 
         Returns a ProviderResponse if matched, None otherwise.
-        Bypasses the LLM entirely for obvious single-tool commands.
+        Bypasses the LLM entirely.
         """
         import re
+        import random
         msg = message.lower().strip()
+
+        # Check greetings first — instant, no LLM
+        for pattern, responses in self._GREETINGS.items():
+            if re.match(pattern, msg):
+                return ProviderResponse(
+                    content=random.choice(responses),
+                    provider_name="friday",
+                )
 
         for pattern, tool_name, args_template in self._DIRECT_COMMANDS:
             match = re.search(pattern, msg)
