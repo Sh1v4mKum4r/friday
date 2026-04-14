@@ -51,27 +51,27 @@ def _cmd_tools(args) -> None:
             print(f"  {name:<22} {status}")
         print(f"\n{len(tools)} tools total")
 
-    elif args.tools_action == "enable":
+    elif args.tools_action in ("enable", "disable"):
         if not args.tool_name:
-            print("Usage: friday tools enable <name>")
+            print(f"Usage: friday tools {args.tools_action} <name>")
             sys.exit(1)
-        r = client.post("/tools/toggle", params={"name": args.tool_name, "enabled": True})
-        data = r.json()
-        if data.get("ok"):
-            print(f"Enabled: {args.tool_name}")
-        else:
+        # Check if tool exists first
+        r = client.post("/reload")
+        all_tools = r.json().get("tools", [])
+        tool_names = [t["name"] if isinstance(t, dict) else str(t) for t in all_tools]
+        if args.tool_name not in tool_names:
             print(f"Tool not found: {args.tool_name}")
-
-    elif args.tools_action == "disable":
-        if not args.tool_name:
-            print("Usage: friday tools disable <name>")
+            print(f"Available: {', '.join(tool_names)}")
             sys.exit(1)
-        r = client.post("/tools/toggle", params={"name": args.tool_name, "enabled": False})
+        enabled = args.tools_action == "enable"
+        r = client.post("/tools/toggle", params={"name": args.tool_name, "enabled": enabled})
         data = r.json()
+        action = "Enabled" if enabled else "Disabled"
         if data.get("ok"):
-            print(f"Disabled: {args.tool_name}")
+            print(f"{action}: {args.tool_name}")
         else:
-            print(f"Tool not found: {args.tool_name}")
+            state = "already enabled" if enabled else "already disabled"
+            print(f"{args.tool_name} is {state}")
 
 
 def _cmd_mcp(args) -> None:
