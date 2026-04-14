@@ -151,7 +151,7 @@ class TestSimpleChat:
                 tool_loader = make_tool_loader()
 
                 agent = Agent(router, tool_loader, config_dir, data_dir)
-                await agent.chat("Hello", force_provider="claude")
+                await agent.chat("check disk space", force_provider="claude")
 
                 _, kwargs = router.route.call_args
                 assert kwargs.get("force_provider") == "claude"
