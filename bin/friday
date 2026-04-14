@@ -45,7 +45,7 @@ show_help() {
   completions          Shell tab-completion
 
  SERVICES
-  chrome-bridge        Headless Chrome for AI Mode API  [setup/start/stop/status]
+  chrome-bridge        Headless Chrome for AI Mode API  [setup/start/stop/status/reconnect]
 
  QUICK (Super+F = floating window)
   friday-tui            friday-send <prompt>            friday-gui

@@ -38,16 +38,16 @@ class GoogleAIProvider(BaseProvider):
         history: list[dict],
         system_prompt: str = "",
     ) -> ProviderResponse:
-        # Try SerpAPI first (reliable, no Chrome needed)
+        # Try free AI Mode API first (unlimited, needs Chrome bridge)
+        result = await self._try_aimodeapi(prompt)
+        if result:
+            return result
+
+        # Fall back to SerpAPI (100/month, no Chrome needed)
         if self.serpapi_key:
             result = await self._try_serpapi(prompt)
             if result:
                 return result
-
-        # Fall back to AI Mode API (needs Chrome bridge running + connected)
-        result = await self._try_aimodeapi(prompt)
-        if result:
-            return result
 
         # Last resort: open browser
         return self._fallback_browser(prompt)

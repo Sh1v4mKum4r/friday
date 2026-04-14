@@ -85,8 +85,31 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
             "https://www.google.com" \
             >/dev/null 2>&1 &
         echo $! > "$PIDFILE"
+        sleep 3
+
+        # Try to activate extension by clicking its toolbar icon via xdotool
+        if command -v xdotool &>/dev/null; then
+            # Find Chrome window on the virtual display
+            DISPLAY=:$DISPLAY_NUM xdotool search --name "Google" windowactivate 2>/dev/null
+            sleep 1
+            # Keyboard shortcut to open extension popup (Alt+Shift+A is common)
+            # Or use Chrome's built-in extension keyboard shortcut
+            DISPLAY=:$DISPLAY_NUM xdotool key --clearmodifiers alt+shift+a 2>/dev/null
+            sleep 2
+        fi
 
         echo "Chrome bridge running (headless, PID: $(cat $PIDFILE))"
+
+        # Verify connection
+        sleep 3
+        API_URL=$(grep "aimodeapi_url" "$HOME/.config/friday/config.toml" 2>/dev/null | cut -d'"' -f2)
+        if [ -n "$API_URL" ] && [ "$API_URL" != "" ]; then
+            if curl -s "$API_URL" -H "Content-Type: application/json" -d '{"query":"test"}' 2>/dev/null | grep -q "success"; then
+                echo "Extension connected ✓"
+            else
+                echo "Extension may not be connected. Try: friday chrome-bridge reconnect"
+            fi
+        fi
         ;;
 
     stop)
@@ -100,6 +123,34 @@ with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
             rm -f "$XVFB_PIDFILE"
             echo "Xvfb stopped."
         fi
+        ;;
+
+    reconnect)
+        # Stop headless, open visually to reconnect, then go headless again
+        echo "Opening Chrome to reconnect extension..."
+        echo "  1. Click the AI Mode API extension icon"
+        echo "  2. Wait for green 'Connected'"
+        echo "  3. Close Chrome"
+        echo ""
+
+        # Stop headless if running
+        if [ -f "$PIDFILE" ]; then
+            kill "$(cat $PIDFILE)" 2>/dev/null
+            rm -f "$PIDFILE"
+        fi
+        if [ -f "$XVFB_PIDFILE" ]; then
+            kill "$(cat $XVFB_PIDFILE)" 2>/dev/null
+            rm -f "$XVFB_PIDFILE"
+        fi
+
+        # Open visually
+        $CHROME_BIN \
+            --no-first-run \
+            --user-data-dir="$CHROME_PROFILE" \
+            "https://www.google.com" 2>/dev/null
+
+        echo "Chrome closed. Restarting headless..."
+        exec "$0" start
         ;;
 
     status)
