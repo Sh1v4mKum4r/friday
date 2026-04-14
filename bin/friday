@@ -149,7 +149,7 @@ case "${1:-}" in
                 ;;
             google)
                 sed -i 's/provider_mode = ".*"/provider_mode = "google"/' "$CONFIG_DIR/config.toml"
-                echo "Mode: google (opens Google AI mode in browser)"
+                echo "Mode: google (all queries via Google AI API)"
                 echo "Restart Friday to apply."
                 ;;
             *)

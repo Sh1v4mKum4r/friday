@@ -182,12 +182,22 @@ class Agent:
         # ------------------------------------------------------------------ #
         # Max rounds exceeded — return the last partial response               #
         # ------------------------------------------------------------------ #
-        if last_response is not None:
+        if last_response is not None and last_response.content:
             return last_response
 
+        # Empty response from all providers — try ask_cloud as last resort
+        try:
+            ask_cloud_tool = self.tool_loader.tools.get("ask_cloud")
+            if ask_cloud_tool:
+                result = str(ask_cloud_tool.run(question=message))
+                if result and "Error" not in result[:10]:
+                    return ProviderResponse(content=result, provider_name="ask_cloud")
+        except Exception:
+            pass
+
         return ProviderResponse(
-            content="Error: max tool rounds exceeded with no response.",
-            provider_name="",
+            content="I couldn't generate a response. Try rephrasing or use: friday-send \"your question\" with more detail.",
+            provider_name="friday",
         )
 
     async def stream_chat(

@@ -257,8 +257,14 @@ class ProviderRouter:
         # ------------------------------------------------------------------ #
         if force_provider is None and self.provider_mode == "google":
             google = self._find_by_name("google_ai")
-            if google and await google.is_available():
-                return await google.send_message(prompt, tools, history, system_prompt)
+            if google:
+                try:
+                    result = await google.send_message(prompt, tools, history, system_prompt)
+                    if result.content and "error" not in result.content.lower()[:20]:
+                        return result
+                except Exception:
+                    pass
+                # Google AI failed — fall through to normal chain
 
         if force_provider is None and self.provider_mode == "race":
             intent = classify_intent(prompt)
