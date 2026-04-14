@@ -75,6 +75,10 @@ def load_config(path: str | Path) -> FridayConfig:
     ``OPENAI_API_KEY`` are applied only when the corresponding TOML field is
     empty (falsy).
     """
+    path = Path(path)
+    if not path.exists():
+        return FridayConfig()
+
     with open(path, "rb") as fh:
         raw = tomllib.load(fh)
 

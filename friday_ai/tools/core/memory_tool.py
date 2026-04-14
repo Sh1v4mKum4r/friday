@@ -14,6 +14,9 @@ _MEMORY_FILE = Path.home() / ".local" / "share" / "friday" / "memory" / "MEMORY.
 
 def run(entry: str) -> str:
     """Append *entry* as a bullet point to MEMORY.md."""
+    if not entry or not entry.strip():
+        return "Error: cannot save empty entry to memory."
+    entry = entry.strip()
     try:
         _MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
         existing = _MEMORY_FILE.read_text().rstrip() if _MEMORY_FILE.exists() else ""
