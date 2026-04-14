@@ -55,6 +55,11 @@ SHORTCUTS:
   friday-send <prompt>      Same as 'friday send <prompt>'
   friday-gui                Same as 'friday gui'
 
+MODES:
+  friday mode               Show current provider mode
+  friday mode fallback      Ollama first, cloud if fails
+  friday mode race          Cloud providers race, fastest wins
+
 KEYBINDS:
   Super+F                   Toggle floating window
 
@@ -144,6 +149,34 @@ case "${1:-}" in
         shift
         "$FRIDAY_DIR/bin/friday-send" "$@"
         exit $?
+        ;;
+
+    # -------------------------------------------------------------------
+    mode)
+        shift
+        CURRENT=$(grep "provider_mode" "$CONFIG_DIR/config.toml" | cut -d'"' -f2)
+        case "${1:-}" in
+            fallback)
+                sed -i 's/provider_mode = ".*"/provider_mode = "fallback"/' "$CONFIG_DIR/config.toml"
+                echo "Mode: fallback (Ollama → cloud CLI if fails)"
+                echo "Restart Friday to apply."
+                ;;
+            race)
+                sed -i 's/provider_mode = ".*"/provider_mode = "race"/' "$CONFIG_DIR/config.toml"
+                echo "Mode: race (cloud providers race, fastest wins)"
+                echo "Restart Friday to apply."
+                ;;
+            *)
+                echo "Current mode: $CURRENT"
+                echo ""
+                echo "Available modes:"
+                echo "  fallback  — Ollama first, cloud if fails (local-first, offline-capable)"
+                echo "  race      — Cloud providers race, fastest wins (needs internet)"
+                echo ""
+                echo "Use: friday mode fallback"
+                echo "     friday mode race"
+                ;;
+        esac
         ;;
 
     # -------------------------------------------------------------------

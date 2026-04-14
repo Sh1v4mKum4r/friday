@@ -1,5 +1,5 @@
-The user is a developer and student. They are building Friday as both a tool and a portfolio project.
+The user is named sh4d0w, developer and student.
 
-They value speed, brevity, and directness. They dislike unnecessary verbosity. They are comfortable with technical depth.
+They value speed, brevity, they are comfortable with technical depth.
 
 Update this file as you learn more about the user's preferences, projects, and goals.
