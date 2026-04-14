@@ -130,7 +130,7 @@ else:
             *)
                 if curl -s "$API/health" > /dev/null 2>&1; then
                     echo "Built-in tools:"
-                    curl -s -X POST "$API/reload" | python3 -c "import sys,json; [print(f'  {t}') for t in json.load(sys.stdin)['tools']]"
+                    curl -s -X POST "$API/reload" | python3 -c "import sys,json; d=json.load(sys.stdin); [print(f'  {t}') for t in d['tools']]"
                     echo ""
                     echo "MCP servers:"
                     python3 -c "
