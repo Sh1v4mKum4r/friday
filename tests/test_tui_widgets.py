@@ -137,3 +137,34 @@ class TestInputBar:
             assert bar.is_thinking is True
             bar.set_thinking(False)
             assert bar.is_thinking is False
+
+
+from friday_ai.tui.widgets.sidebar import Sidebar
+
+
+class TestSidebar:
+    @pytest.mark.asyncio
+    async def test_renders_empty(self):
+        widget = Sidebar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            sidebar = pilot.app.query_one(Sidebar)
+            assert sidebar is not None
+
+    @pytest.mark.asyncio
+    async def test_load_sessions(self):
+        sessions = [
+            {"name": "React Optimize", "date": "2026-04-14", "id": "s1"},
+            {"name": "MCP Fix", "date": "2026-04-13", "id": "s2"},
+        ]
+        widget = Sidebar()
+        async with MessageTestApp(widget).run_test() as pilot:
+            sidebar = pilot.app.query_one(Sidebar)
+            sidebar.load_sessions(sessions)
+            assert len(sidebar.sessions) == 2
+
+    @pytest.mark.asyncio
+    async def test_starts_hidden(self):
+        widget = Sidebar(classes="hidden")
+        async with MessageTestApp(widget).run_test() as pilot:
+            sidebar = pilot.app.query_one(Sidebar)
+            assert sidebar.has_class("hidden")
