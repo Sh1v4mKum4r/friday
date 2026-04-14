@@ -1,23 +1,24 @@
-/* Obsidian — "The Digital Curator" — deep purple accents */
-
-/* === Layout === */
-/* Sidebar and telemetry are docked overlays on a separate layer.
-   Chat body fills the screen. Mode bar and input dock at the bottom
-   of the chat body. Messages fill everything above them. */
+/* Obsidian — "The Digital Curator" — deep purple accents
+   btop-inspired: bordered panels, dense layout, zero wasted space */
 
 Screen {
     background: #0e0d15;
     color: #f2effa;
 }
 
-/* Sidebar and telemetry float on an overlay layer — they don't affect flow */
+/* ═══════════════════════════════════════════════════════════
+   OVERLAY PANELS — float on separate layer, don't break flow
+   ═══════════════════════════════════════════════════════════ */
+
 Sidebar {
     dock: left;
     width: 32;
     layer: overlay;
     background: #0e0d15;
-    border-right: vkey #252530;
-    padding: 1 0;
+    border: tall #252530;
+    border-title-color: #ba9eff;
+    border-title-style: bold;
+    padding: 0;
 }
 
 TelemetryPanel {
@@ -25,78 +26,22 @@ TelemetryPanel {
     width: 34;
     layer: overlay;
     background: #0e0d15;
-    border-left: vkey #252530;
-    padding: 1 0;
+    border: tall #252530;
+    border-title-color: #ba9eff;
+    border-title-style: bold;
+    padding: 0;
 }
 
-/* Main chat body — fills entire screen, holds messages + input */
-#chat-body {
-    width: 100%;
-    height: 100%;
-}
+/* ═══════════════════════════════════════════════════════════
+   BOTTOM BAR — mode switcher + input, docked to bottom
+   ═══════════════════════════════════════════════════════════ */
 
-/* Messages area fills all space above the bottom-docked elements */
-#messages {
-    background: #0e0d15;
-    scrollbar-color: #252530;
-    scrollbar-color-hover: #ba9eff;
-    scrollbar-color-active: #ba9eff;
-    scrollbar-background: #0e0d15;
-}
-
-/* === Welcome banner === */
-#welcome-banner {
-    width: 100%;
-    content-align: center middle;
-    text-align: center;
-    color: #ba9eff;
-    padding: 4 0;
-}
-
-/* === Messages === */
-.msg-user {
-    background: #13131b;
-    color: #f2effa;
-    margin: 1 4 0 24;
-    padding: 1 2;
-}
-
-.msg-assistant {
-    background: #191922;
-    color: #f2effa;
-    margin: 1 24 0 4;
-    padding: 1 2;
-    border-left: thick #ba9eff;
-}
-
-.msg-user .timestamp { color: #8a8694; text-align: right; }
-.msg-assistant .timestamp { color: #8a8694; }
-.provider-tag { background: #8455ef; color: #f2effa; padding: 0 1; text-style: bold; }
-.latency-tag { color: #8a8694; }
-
-/* === Mode bar — docks above input === */
-ModeBar {
-    dock: bottom;
-    height: 1;
-    background: #13131b;
-}
-
-#mode-bar {
-    height: 1;
-    background: #13131b;
-    padding: 0 2;
-}
-
-.mode-active { color: #ba9eff; text-style: bold; }
-.mode-inactive { color: #8a8694; }
-
-/* === Input bar — docks at very bottom === */
 InputBar {
     dock: bottom;
     height: auto;
     max-height: 5;
     background: #0e0d15;
-    padding: 0 2 1 2;
+    padding: 0 1;
 }
 
 #input-area {
@@ -107,12 +52,13 @@ InputBar {
 #chat-input {
     background: #0a0a10;
     color: #f2effa;
-    border: tall #252530;
+    border: round #252530;
     padding: 0 2;
+    margin: 0 1;
 }
 
 #chat-input:focus {
-    border: tall #ba9eff;
+    border: round #ba9eff;
 }
 
 #thinking-label {
@@ -122,55 +68,280 @@ InputBar {
     height: 1;
 }
 
-/* === Sidebar internals === */
+ModeBar {
+    dock: bottom;
+    height: 1;
+    background: #13131b;
+    border-top: hkey #252530;
+}
+
+#mode-bar {
+    height: 1;
+    background: #13131b;
+    padding: 0 1;
+}
+
+.mode-active {
+    color: #ba9eff;
+    text-style: bold;
+}
+
+.mode-inactive {
+    color: #8a8694;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   WELCOME PANEL — centered logo + quick-action card grid
+   ═══════════════════════════════════════════════════════════ */
+
+#welcome-panel {
+    align: center middle;
+    width: 100%;
+    height: 100%;
+    padding: 2;
+}
+
+#welcome-logo {
+    text-align: center;
+    color: #ba9eff;
+    text-style: bold;
+    width: auto;
+    margin: 0 0;
+}
+
+#welcome-subtitle {
+    text-align: center;
+    color: #8a8694;
+    margin: 1 0 2 0;
+    width: 100%;
+}
+
+#quick-action-grid {
+    width: 80%;
+    max-width: 100;
+    height: auto;
+    margin: 0 0;
+    keyline: thin #252530;
+}
+
+.quick-action {
+    height: 4;
+    padding: 1 1;
+    background: #13131b;
+    color: #f2effa;
+    border: tall transparent;
+}
+
+.quick-action:focus {
+    border: tall #ba9eff;
+    background: #191922;
+    color: #ba9eff;
+}
+
+.quick-action:hover {
+    background: #191922;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MESSAGES AREA — scrollable chat history
+   ═══════════════════════════════════════════════════════════ */
+
+#messages {
+    background: #0e0d15;
+    scrollbar-color: #252530;
+    scrollbar-color-hover: #ba9eff;
+    scrollbar-color-active: #ba9eff;
+    scrollbar-background: #0e0d15;
+}
+
+.msg-user {
+    background: #13131b;
+    color: #f2effa;
+    margin: 1 4 0 20;
+    padding: 1 2;
+    border: round #252530;
+}
+
+.msg-assistant {
+    background: #191922;
+    color: #f2effa;
+    margin: 1 20 0 4;
+    padding: 1 2;
+    border-left: thick #ba9eff;
+}
+
+.msg-user .timestamp {
+    color: #8a8694;
+    text-align: right;
+}
+
+.msg-assistant .timestamp {
+    color: #8a8694;
+}
+
+.provider-tag {
+    background: #8455ef;
+    color: #f2effa;
+    padding: 0 1;
+    text-style: bold;
+}
+
+.latency-tag {
+    color: #8a8694;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR INTERNALS
+   ═══════════════════════════════════════════════════════════ */
+
 #sidebar {
     height: 100%;
 }
 
-#sidebar-title { color: #ba9eff; text-style: bold; padding: 0 2 1 2; }
-#new-session-btn { color: #4ae176; padding: 0 2; height: 1; }
-.session-item { padding: 0 2; height: 1; color: #f2effa; }
-.session-item:hover { background: #191922; }
-.session-item.-selected { background: #252530; color: #ba9eff; }
-.session-group-label { color: #8a8694; text-style: bold; padding: 1 2 0 2; }
+#sidebar-title {
+    color: #ba9eff;
+    text-style: bold;
+    padding: 0 1 1 1;
+}
 
-/* === Telemetry internals === */
+#new-session-btn {
+    color: #4ae176;
+    padding: 0 1;
+    height: 1;
+}
+
+.session-item {
+    padding: 0 1;
+    height: 1;
+    color: #f2effa;
+}
+
+.session-item:hover {
+    background: #191922;
+}
+
+.session-item.-selected {
+    background: #252530;
+    color: #ba9eff;
+}
+
+.session-group-label {
+    color: #8a8694;
+    text-style: bold;
+    padding: 1 1 0 1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TELEMETRY INTERNALS
+   ═══════════════════════════════════════════════════════════ */
+
 #telemetry {
     height: 100%;
 }
 
-#telemetry-title { color: #ba9eff; text-style: bold; padding: 0 2 1 2; }
-.telemetry-label { color: #8a8694; text-style: bold; padding: 1 2 0 2; }
-.telemetry-value { color: #f2effa; padding: 0 2; }
+#telemetry-title {
+    color: #ba9eff;
+    text-style: bold;
+    padding: 0 1 1 1;
+}
+
+.telemetry-label {
+    color: #8a8694;
+    text-style: bold;
+    padding: 1 1 0 1;
+}
+
+.telemetry-value {
+    color: #f2effa;
+    padding: 0 1;
+}
+
 .status-online { color: #4ae176; }
 .status-offline { color: #d73357; }
 .status-connecting { color: #ba9eff; }
 
-/* === Settings === */
-#settings-screen { background: #0e0d15; height: 100%; width: 100%; }
-#settings-header { height: 1; background: #13131b; padding: 0 2; }
-#settings-tabs { height: 1; background: #0e0d15; padding: 0 1; }
-#settings-fields { background: #0e0d15; }
-#settings-footer { height: 1; background: #13131b; padding: 0 2; dock: bottom; }
-.settings-tab-active { background: #191922; color: #ba9eff; text-style: bold; padding: 0 2; }
-.settings-tab-inactive { background: #0e0d15; color: #8a8694; padding: 0 2; }
+/* ═══════════════════════════════════════════════════════════
+   SETTINGS SCREEN
+   ═══════════════════════════════════════════════════════════ */
+
+#settings-screen {
+    background: #0e0d15;
+    height: 100%;
+    width: 100%;
+}
+
+#settings-header {
+    height: 1;
+    background: #13131b;
+    padding: 0 2;
+    border-bottom: hkey #252530;
+}
+
+#settings-tabs {
+    height: 1;
+    background: #0e0d15;
+    padding: 0 1;
+}
+
+#settings-fields {
+    background: #0e0d15;
+}
+
+#settings-footer {
+    height: 1;
+    background: #13131b;
+    padding: 0 2;
+    dock: bottom;
+    border-top: hkey #252530;
+}
+
+.settings-tab-active {
+    background: #191922;
+    color: #ba9eff;
+    text-style: bold;
+    padding: 0 2;
+}
+
+.settings-tab-inactive {
+    background: #0e0d15;
+    color: #8a8694;
+    padding: 0 2;
+}
+
 .settings-label { color: #f2effa; }
 .settings-value { color: #ba9eff; }
 .settings-field { height: 1; padding: 0 2; }
 .settings-field.-selected { background: #191922; }
 
-/* === Welcome === */
-#welcome { background: #0e0d15; align: center middle; }
-#welcome-logo { color: #ba9eff; text-style: bold; }
-#welcome-title { color: #f2effa; text-align: center; }
-.quick-action { background: #191922; padding: 1 2; margin: 1; width: 24; height: 5; }
-.quick-action:hover { background: #252530; border: tall #ba9eff; }
+/* ═══════════════════════════════════════════════════════════
+   CODE BLOCKS
+   ═══════════════════════════════════════════════════════════ */
 
-/* === Code blocks === */
-.code-block { background: #0a0a10; padding: 1; margin: 1 0; }
-.code-header { background: #191922; color: #8a8694; padding: 0 1; }
-.code-copy-hint { color: #8455ef; }
+.code-block {
+    background: #0a0a10;
+    padding: 1;
+    margin: 1 0;
+    border: tall #252530;
+}
 
-/* === General === */
+.code-header {
+    background: #191922;
+    color: #8a8694;
+    padding: 0 1;
+}
+
+.code-copy-hint {
+    color: #8455ef;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GENERAL
+   ═══════════════════════════════════════════════════════════ */
+
 .hidden { display: none; }
-Toast { background: #191922; color: #f2effa; }
+
+Toast {
+    background: #191922;
+    color: #f2effa;
+    border: tall #ba9eff;
+}

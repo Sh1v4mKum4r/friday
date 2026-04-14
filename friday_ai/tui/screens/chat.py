@@ -5,8 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 
 from textual.app import ComposeResult
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Center, ItemGrid, Vertical, VerticalScroll
 from textual.screen import Screen
+from textual.message import Message
 from textual.widgets import Label, Static
 
 from friday_ai.tui.widgets.input_bar import InputBar
@@ -16,25 +17,48 @@ from friday_ai.tui.widgets.sidebar import Sidebar
 from friday_ai.tui.widgets.telemetry import TelemetryPanel
 
 FRIDAY_LOGO = """\
- ███████╗ ██████╗  ██╗ ██████╗   █████╗  ██╗   ██╗
- ██╔════╝ ██╔══██╗ ██║ ██╔══██╗ ██╔══██╗ ╚██╗ ██╔╝
- █████╗   ██████╔╝ ██║ ██║  ██║ ███████║  ╚████╔╝
- ██╔══╝   ██╔══██╗ ██║ ██║  ██║ ██╔══██║   ╚██╔╝
- ██║      ██║  ██║ ██║ ██████╔╝ ██║  ██║    ██║
- ╚═╝      ╚═╝  ╚═╝ ╚═╝ ╚═════╝  ╚═╝  ╚═╝    ╚═╝\
-"""
+███████╗██████╗ ██╗██████╗  █████╗ ██╗   ██╗
+██╔════╝██╔══██╗██║██╔══██╗██╔══██╗╚██╗ ██╔╝
+█████╗  ██████╔╝██║██║  ██║███████║ ╚████╔╝
+██╔══╝  ██╔══██╗██║██║  ██║██╔══██║  ╚██╔╝
+██║     ██║  ██║██║██████╔╝██║  ██║   ██║
+╚═╝     ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝   ╚═╝"""
+
+QUICK_ACTIONS = [
+    ("Execute Command", "Run shell commands and system automation"),
+    ("Explain Code", "Break down logic or debug error messages"),
+    ("Analyze Data", "Extract insights and trends from data"),
+    ("Summarize Text", "Condense articles or meeting notes"),
+    ("Brainstorm", "Generate ideas for any project"),
+    ("Search Web", "Find current info, news, and prices"),
+]
 
 
-class WelcomeBanner(Static):
-    """Centered welcome content shown when chat is empty."""
+class QuickActionCard(Static, can_focus=True):
+    """Focusable quick-action card in the welcome grid."""
+
+    def __init__(self, title: str, description: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.action_title = title
+        self.action_desc = description
 
     def render(self) -> str:
-        return (
-            f"{FRIDAY_LOGO}\n\n"
-            "          What can I help with?\n\n"
-            "    Type a message below to get started.\n"
-            "    Use Ctrl+B for history, Ctrl+T for telemetry.\n"
-        )
+        return f"  {self.action_title}\n  {self.action_desc[:38]}"
+
+    def on_key(self, event) -> None:
+        if event.key == "enter":
+            self.screen.post_message(ChatScreen.QuickActionChosen(self.action_title))
+
+
+class WelcomePanel(Vertical):
+    """Centered welcome content with logo and quick-action grid."""
+
+    def compose(self) -> ComposeResult:
+        yield Static(FRIDAY_LOGO, id="welcome-logo")
+        yield Label("What can I help with?", id="welcome-subtitle")
+        with ItemGrid(id="quick-action-grid", min_column_width=36):
+            for title, desc in QUICK_ACTIONS:
+                yield QuickActionCard(title, desc, classes="quick-action")
 
 
 class ChatScreen(Screen):
@@ -49,18 +73,23 @@ class ChatScreen(Screen):
         ("i", "focus_input", "Input"),
     ]
 
+    class QuickActionChosen(Message):
+        """Emitted when a quick action card is selected."""
+
+        def __init__(self, prompt: str) -> None:
+            super().__init__()
+            self.prompt = prompt
+
     def compose(self) -> ComposeResult:
+        # Overlay panels (float on separate layer)
         yield Sidebar(classes="hidden")
         yield TelemetryPanel(classes="hidden")
-        with Vertical(id="chat-body"):
-            yield VerticalScroll(id="messages")
-            yield ModeBar()
-            yield InputBar()
-
-    def on_mount(self) -> None:
-        """Show welcome banner in the empty messages area."""
-        messages = self.query_one("#messages", VerticalScroll)
-        messages.mount(WelcomeBanner(id="welcome-banner"))
+        # Bottom-docked elements (first = outermost bottom)
+        yield InputBar()
+        yield ModeBar()
+        # Main content area — welcome panel shown initially, messages hidden
+        yield WelcomePanel(id="welcome-panel")
+        yield VerticalScroll(id="messages", classes="hidden")
 
     def add_message(
         self,
@@ -70,10 +99,13 @@ class ChatScreen(Screen):
         latency: float = 0.0,
     ) -> MessageWidget:
         """Add a message to the chat area."""
-        # Remove welcome banner on first message
+        # Switch from welcome to messages on first message
         try:
-            banner = self.query_one("#welcome-banner", WelcomeBanner)
-            banner.remove()
+            welcome = self.query_one("#welcome-panel", WelcomePanel)
+            if not welcome.has_class("hidden"):
+                welcome.add_class("hidden")
+                messages = self.query_one("#messages", VerticalScroll)
+                messages.remove_class("hidden")
         except Exception:
             pass
 
