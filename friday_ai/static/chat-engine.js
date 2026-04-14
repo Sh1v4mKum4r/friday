@@ -329,7 +329,12 @@ function parseMarkdown(text) {
   text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
   text = text.replace(/~~(.*?)~~/g, '<del>$1</del>');
-  text = text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener" style="text-decoration:underline;">$1</a>');
+  text = text.replace(/\[(.*?)\]\((.*?)\)/g, function(_, label, url) {
+    if (/^(https?:\/\/|mailto:)/i.test(url)) {
+      return '<a href="' + url + '" target="_blank" rel="noopener" style="text-decoration:underline;">' + label + '</a>';
+    }
+    return label + ' (' + url + ')';
+  });
 
   text = text.replace(/^[\*\-] (.*)$/gm, '<ul><li>$1</li></ul>');
   text = text.replace(/<\/ul>\n<ul>/g, '');
