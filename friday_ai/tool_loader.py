@@ -125,8 +125,8 @@ class ToolLoader:
             If *tool_name* is not found in the loaded tools.
         """
         if tool_name in self.disabled:
-            return f"Tool '{tool_name}' is currently disabled."
-        tool = self.tools[tool_name]  # Raises KeyError if missing — intentional
+            raise KeyError(f"Tool '{tool_name}' is disabled")
+        tool = self.tools[tool_name]
         result = tool.run(**args)
         return str(result)
 
@@ -139,19 +139,16 @@ class ToolLoader:
         return self.discover()
 
     def get_tools_description(self) -> str:
-        """Return a human-readable summary of all loaded tools.
+        """Return a human-readable summary of all enabled tools.
 
-        Format::
-
-            - tool_name(param: type, ...): Description text
-            - other_tool(): Another description
-
-        Returns an empty string when no tools are loaded.
+        Disabled tools are excluded — the LLM should never see them.
         """
         if not self.tools:
             return ""
         lines: list[str] = []
         for tool in self.tools.values():
+            if tool.name in self.disabled:
+                continue
             params_str = ", ".join(
                 f"{name}: {type_hint}" for name, type_hint in tool.parameters.items()
             )
@@ -181,6 +178,8 @@ class ToolLoader:
         """
         schemas: list[dict] = []
         for tool in self.tools.values():
+            if tool.name in self.disabled:
+                continue
             sig = inspect.signature(tool.run)
             properties: dict[str, dict] = {}
             required: list[str] = []
