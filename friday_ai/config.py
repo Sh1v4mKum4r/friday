@@ -32,6 +32,7 @@ class ProvidersConfig:
     ollama_model_fast: str = "qwen2.5:3b"
     ollama_model_heavy: str = "qwen2.5:7b"
     serpapi_key: str = ""
+    aimodeapi_url: str = ""
 
 
 @dataclass
@@ -97,6 +98,7 @@ def load_config(path: str | Path) -> FridayConfig:
         claude_model=p.get("claude_model", ProvidersConfig.claude_model),
         openai_model=p.get("openai_model", ProvidersConfig.openai_model),
         serpapi_key=p.get("serpapi_key", ""),
+        aimodeapi_url=p.get("aimodeapi_url", ""),
     )
 
     # Apply env-var overrides only when the TOML value is empty
