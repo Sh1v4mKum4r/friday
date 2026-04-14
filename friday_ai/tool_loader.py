@@ -55,10 +55,40 @@ class ToolLoader:
         List of :class:`~pathlib.Path` objects to scan for tool files.
     """
 
-    def __init__(self, tool_dirs: list[Path]) -> None:
+    def __init__(self, tool_dirs: list[Path], data_dir: Path | None = None) -> None:
         self.tool_dirs = tool_dirs
         # Maps tool name -> Tool instance
         self.tools: dict[str, Tool] = {}
+        # Disabled tools — persisted to disk
+        self._disabled_file = (data_dir / "disabled_tools.txt") if data_dir else None
+        self.disabled: set[str] = self._load_disabled()
+
+    def _load_disabled(self) -> set[str]:
+        if self._disabled_file and self._disabled_file.exists():
+            return {l.strip() for l in self._disabled_file.read_text().splitlines() if l.strip()}
+        return set()
+
+    def _save_disabled(self) -> None:
+        if self._disabled_file:
+            self._disabled_file.parent.mkdir(parents=True, exist_ok=True)
+            self._disabled_file.write_text("\n".join(sorted(self.disabled)) + "\n")
+
+    def disable_tool(self, name: str) -> bool:
+        if name in self.tools:
+            self.disabled.add(name)
+            self._save_disabled()
+            return True
+        return False
+
+    def enable_tool(self, name: str) -> bool:
+        if name in self.disabled:
+            self.disabled.discard(name)
+            self._save_disabled()
+            return True
+        return False
+
+    def is_enabled(self, name: str) -> bool:
+        return name not in self.disabled
 
     # ------------------------------------------------------------------
     # Public API
@@ -94,6 +124,8 @@ class ToolLoader:
         KeyError
             If *tool_name* is not found in the loaded tools.
         """
+        if tool_name in self.disabled:
+            return f"Tool '{tool_name}' is currently disabled."
         tool = self.tools[tool_name]  # Raises KeyError if missing — intentional
         result = tool.run(**args)
         return str(result)

@@ -451,16 +451,43 @@ async function loadTools() {
   try {
     var res = await fetch(API + '/reload', { method: 'POST' });
     var data = await res.json();
+    var enabled = data.tools.filter(function(t) { return t.enabled; }).length;
     dom.settingsTools.innerHTML =
-      '<div class="settings-count">' + data.tools.length + ' tools loaded</div>' +
-      '<div class="settings-tags">' +
+      '<div class="settings-count">' + enabled + ' / ' + data.tools.length + ' tools active</div>' +
       data.tools.map(function(t) {
-        return '<span class="settings-tag">' + escapeHtml(t) + '</span>';
-      }).join('') + '</div>';
+        return '<div class="settings-row">' +
+          '<div class="settings-row-left">' +
+            '<span class="settings-dot ' + (t.enabled ? 'online' : 'offline') + '"></span>' +
+            '<span class="settings-label" style="' + (t.enabled ? '' : 'opacity:0.35;') + '">' + escapeHtml(t.name) + '</span>' +
+          '</div>' +
+          '<button data-tool="' + escapeHtml(t.name) + '" data-enabled="' + (t.enabled ? '1' : '0') + '" class="settings-tool-toggle settings-badge" style="cursor:pointer;' +
+            (t.enabled ? 'border-color:rgba(74,225,118,0.4); color:#4ae176;' : 'border-color:rgba(255,110,132,0.4); color:#ff6e84;') + '">' +
+            (t.enabled ? 'ON' : 'OFF') +
+          '</button>' +
+        '</div>';
+      }).join('');
+    // Bind toggle buttons
+    dom.settingsTools.querySelectorAll('.settings-tool-toggle').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var name = this.getAttribute('data-tool');
+        var wasEnabled = this.getAttribute('data-enabled') === '1';
+        window.fridayToggleTool(name, !wasEnabled);
+      });
+    });
   } catch(e) {
     dom.settingsTools.innerHTML = '<div class="settings-error">Error loading tools</div>';
   }
 }
+
+window.fridayToggleTool = async function(name, enabled) {
+  try {
+    await fetch(API + '/tools/toggle?name=' + encodeURIComponent(name) + '&enabled=' + enabled, { method: 'POST' });
+    window.fridayToast(name + (enabled ? ' enabled' : ' disabled'));
+    loadTools();
+  } catch(e) {
+    window.fridayToast('Failed to toggle ' + name);
+  }
+};
 
 async function loadMemory() {
   if (!dom.settingsMemory) return;
@@ -527,19 +554,29 @@ var THEMES = [
   { id: 'prism', name: 'Prism', color: '#ff1a1a', desc: 'Kinetic stealth' }
 ];
 
+function detectCurrentTheme() {
+  var path = window.location.pathname;
+  for (var i = 0; i < THEMES.length; i++) {
+    if (path.indexOf(THEMES[i].id) !== -1) return THEMES[i].id;
+  }
+  return 'obsidian';
+}
+
 function renderThemeSelect() {
   if (!dom.themeSelect) return;
-  var current = safeStorage.getItem(THEME_KEY) || 'obsidian';
+  var current = detectCurrentTheme();
   dom.themeSelect.innerHTML = THEMES.map(function(t) {
-    return '<div onclick="window.fridayApplyTheme(\'' + t.id + '\')" ' +
-    'style="display:flex; align-items:center; gap:12px; padding:10px; cursor:pointer; border:1px solid ' +
-    (t.id === current ? t.color : 'rgba(255,255,255,0.08)') + '; margin-bottom:6px; transition:all 0.2s;">' +
-      '<div style="width:12px; height:12px; border-radius:50%; background:' + t.color + ';"></div>' +
-      '<div>' +
-        '<div style="font-size:13px; font-weight:500;">' + t.name + '</div>' +
-        '<div style="font-size:11px; opacity:0.5;">' + t.desc + '</div>' +
+    var isActive = t.id === current;
+    return '<div onclick="window.fridayApplyTheme(\'' + t.id + '\')" class="settings-row" ' +
+    'style="cursor:pointer; border:1px solid ' + (isActive ? t.color : 'rgba(255,255,255,0.08)') + '; padding:10px; margin-bottom:6px;">' +
+      '<div class="settings-row-left">' +
+        '<div style="width:10px; height:10px; border-radius:50%; background:' + t.color + '; box-shadow:' + (isActive ? '0 0 8px ' + t.color : 'none') + ';"></div>' +
+        '<div>' +
+          '<div class="settings-label">' + t.name + '</div>' +
+          '<div style="font-size:10px; opacity:0.4;">' + t.desc + '</div>' +
+        '</div>' +
       '</div>' +
-      (t.id === current ? '<span style="margin-left:auto; font-size:11px; opacity:0.5;">Active</span>' : '') +
+      (isActive ? '<span class="settings-badge" style="border-color:' + t.color + '; color:' + t.color + ';">ACTIVE</span>' : '') +
     '</div>';
   }).join('');
 }

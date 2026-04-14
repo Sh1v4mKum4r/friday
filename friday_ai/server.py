@@ -167,7 +167,8 @@ def create_app(config_path: Path | None = None) -> FastAPI:
         tool_dirs=[
             Path(__file__).parent / "tools" / "core",
             config_dir / "tools" / "plugins",
-        ]
+        ],
+        data_dir=data_dir,
     )
     tool_loader.discover()
 
@@ -247,7 +248,24 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     async def reload():
         """Hot-reload all tools from disk and return the new count and names."""
         tools = app.state.tool_loader.reload()
-        return {"reloaded": len(tools), "tools": [t.name for t in tools]}
+        loader = app.state.tool_loader
+        return {
+            "reloaded": len(tools),
+            "tools": [
+                {"name": t.name, "enabled": loader.is_enabled(t.name)}
+                for t in tools
+            ],
+        }
+
+    @app.post("/tools/toggle")
+    async def toggle_tool(name: str = Query(...), enabled: bool = Query(...)):
+        """Enable or disable a tool by name."""
+        loader = app.state.tool_loader
+        if enabled:
+            ok = loader.enable_tool(name)
+        else:
+            ok = loader.disable_tool(name)
+        return {"name": name, "enabled": enabled, "ok": ok}
 
     @app.post("/memory/list")
     async def memory_list():
