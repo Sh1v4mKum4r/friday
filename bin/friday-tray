@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""Friday system tray icon for Cosmic/Hyprland.
+
+Shows Friday's status in the system tray with a menu for quick actions.
+Works on any DE that supports XDG StatusNotifier (Cosmic, KDE, Hyprland+waybar).
+"""
+
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('AppIndicator3', '0.1')
+from gi.repository import Gtk, AppIndicator3, GLib
+import subprocess
+import json
+import urllib.request
+import os
+
+API = "http://127.0.0.1:65535"
+ICON_ONLINE = "network-transmit-receive"  # standard icon
+ICON_OFFLINE = "network-offline"
+
+
+def check_health():
+    """Check Friday backend health."""
+    try:
+        req = urllib.request.urlopen(f"{API}/health", timeout=3)
+        data = json.loads(req.read())
+        return True, data
+    except Exception:
+        return False, {}
+
+
+def make_menu(indicator):
+    """Build the tray right-click menu."""
+    menu = Gtk.Menu()
+
+    online, health = check_health()
+
+    # Status header
+    status_item = Gtk.MenuItem(label=f"Friday: {'Online' if online else 'Offline'}")
+    status_item.set_sensitive(False)
+    menu.append(status_item)
+
+    if online:
+        providers = ", ".join(health.get("providers", []))
+        prov_item = Gtk.MenuItem(label=f"Providers: {providers}")
+        prov_item.set_sensitive(False)
+        menu.append(prov_item)
+
+    menu.append(Gtk.SeparatorMenuItem())
+
+    # Quick actions
+    chat_item = Gtk.MenuItem(label="Open Chat (Super+F)")
+    chat_item.connect("activate", lambda _: subprocess.Popen(["friday-hotkey"]))
+    menu.append(chat_item)
+
+    tui_item = Gtk.MenuItem(label="Open TUI")
+    tui_item.connect("activate", lambda _: subprocess.Popen(["kitty", "-e", "friday-tui"]))
+    menu.append(tui_item)
+
+    send_item = Gtk.MenuItem(label="Quick Send...")
+    send_item.connect("activate", on_quick_send)
+    menu.append(send_item)
+
+    menu.append(Gtk.SeparatorMenuItem())
+
+    if online:
+        # Memory
+        mem_item = Gtk.MenuItem(label="View Memory")
+        mem_item.connect("activate", lambda _: subprocess.Popen(["kitty", "-e", "friday", "memory"]))
+        menu.append(mem_item)
+
+        # Tools
+        tools_item = Gtk.MenuItem(label="View Tools")
+        tools_item.connect("activate", lambda _: subprocess.Popen(["kitty", "-e", "friday", "tools"]))
+        menu.append(tools_item)
+
+        # Health
+        health_item = Gtk.MenuItem(label="Health Check")
+        health_item.connect("activate", lambda _: subprocess.Popen(["kitty", "-e", "friday", "doctor"]))
+        menu.append(health_item)
+
+        menu.append(Gtk.SeparatorMenuItem())
+
+        stop_item = Gtk.MenuItem(label="Stop Friday")
+        stop_item.connect("activate", lambda _: subprocess.Popen(["friday", "stop"]))
+        menu.append(stop_item)
+    else:
+        start_item = Gtk.MenuItem(label="Start Friday")
+        start_item.connect("activate", lambda _: subprocess.Popen(["friday", "start", "--daemon"]))
+        menu.append(start_item)
+
+    menu.append(Gtk.SeparatorMenuItem())
+
+    quit_item = Gtk.MenuItem(label="Quit Tray")
+    quit_item.connect("activate", lambda _: Gtk.main_quit())
+    menu.append(quit_item)
+
+    menu.show_all()
+    return menu
+
+
+def on_quick_send(_):
+    """Open a simple dialog to send a prompt."""
+    dialog = Gtk.MessageDialog(
+        message_type=Gtk.MessageType.QUESTION,
+        buttons=Gtk.ButtonsType.OK_CANCEL,
+        text="Friday — Quick Send",
+    )
+    dialog.format_secondary_text("Enter your prompt:")
+    entry = Gtk.Entry()
+    entry.set_activates_default(True)
+    dialog.get_content_area().pack_end(entry, False, False, 0)
+    dialog.show_all()
+
+    response = dialog.run()
+    text = entry.get_text().strip()
+    dialog.destroy()
+
+    if response == Gtk.ResponseType.OK and text:
+        subprocess.Popen(["friday-send", text])
+
+
+def update_status(indicator):
+    """Periodically update the tray icon based on Friday's status."""
+    online, health = check_health()
+
+    if online:
+        count = len(health.get("providers", []))
+        indicator.set_icon_full(ICON_ONLINE, "Friday Online")
+        indicator.set_label(f" {count}", "")
+    else:
+        indicator.set_icon_full(ICON_OFFLINE, "Friday Offline")
+        indicator.set_label(" off", "")
+
+    # Rebuild menu with fresh data
+    indicator.set_menu(make_menu(indicator))
+
+    return True  # Keep the timer running
+
+
+def main():
+    indicator = AppIndicator3.Indicator.new(
+        "friday-ai",
+        ICON_ONLINE,
+        AppIndicator3.IndicatorCategory.APPLICATION_STATUS,
+    )
+    indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
+    indicator.set_title("Friday AI")
+    indicator.set_menu(make_menu(indicator))
+
+    # Update every 10 seconds
+    GLib.timeout_add_seconds(10, update_status, indicator)
+
+    # Initial update
+    update_status(indicator)
+
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()
