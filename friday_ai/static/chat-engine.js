@@ -24,7 +24,36 @@ let currentMode = 'chat';
 let isWaiting = false;
 const dom = {};
 
+function injectSettingsStyles() {
+  if (document.getElementById('fridaySettingsCSS')) return;
+  var style = document.createElement('style');
+  style.id = 'fridaySettingsCSS';
+  style.textContent = [
+    '.settings-loading { padding:12px; font-size:11px; opacity:0.4; font-family:monospace; }',
+    '.settings-error { padding:12px; font-size:11px; color:#ff6e84; font-family:monospace; }',
+    '.settings-empty { padding:12px; font-size:11px; opacity:0.4; font-family:monospace; }',
+    '.settings-count { font-size:10px; opacity:0.4; font-family:monospace; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; }',
+    '.settings-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); }',
+    '.settings-row-left { display:flex; align-items:center; gap:10px; }',
+    '.settings-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }',
+    '.settings-dot.online { background:#4ae176; box-shadow:0 0 6px rgba(74,225,118,0.4); }',
+    '.settings-dot.offline { background:#ff6e84; box-shadow:0 0 6px rgba(255,110,132,0.4); }',
+    '.settings-label { font-size:12px; font-family:monospace; letter-spacing:0.05em; }',
+    '.settings-badge { font-size:9px; font-family:monospace; letter-spacing:0.15em; text-transform:uppercase; padding:2px 8px; border:1px solid rgba(255,255,255,0.1); opacity:0.5; }',
+    '.settings-tags { display:flex; flex-wrap:wrap; gap:5px; }',
+    '.settings-tag { font-size:10px; font-family:monospace; padding:3px 8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); letter-spacing:0.05em; }',
+    '.settings-memory-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.06); }',
+    '.settings-memory-text { font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; opacity:0.8; }',
+    '.settings-memory-delete { background:none; border:none; color:#ff6e84; cursor:pointer; font-size:16px; padding:2px 6px; opacity:0.4; transition:opacity 0.2s; flex-shrink:0; }',
+    '.settings-memory-delete:hover { opacity:1; }',
+    '.settings-action-btn { font-size:10px; font-family:monospace; letter-spacing:0.1em; text-transform:uppercase; padding:6px 14px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.03); color:inherit; cursor:pointer; transition:all 0.2s; }',
+    '.settings-action-btn:hover { background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.25); }',
+  ].join('\n');
+  document.head.appendChild(style);
+}
+
 function initFriday() {
+  injectSettingsStyles();
   dom.chatArea = document.getElementById('chatArea');
   dom.messageInput = document.getElementById('messageInput');
   dom.sendBtn = document.getElementById('sendBtn');
@@ -370,75 +399,103 @@ window.fridayToggleSettings = toggleSettings;
 
 async function loadProviders() {
   if (!dom.settingsProviders) return;
-  dom.settingsProviders.innerHTML = '<div style="padding:10px; font-size:12px; opacity:0.5;">Loading...</div>';
+  dom.settingsProviders.innerHTML = '<div class="settings-loading">Loading...</div>';
   try {
     var res = await fetch(API + '/health');
     var data = await res.json();
     dom.settingsProviders.innerHTML = data.providers.map(function(p) {
-      return '<div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px;">' + escapeHtml(p) + '</div>';
+      return '<div class="settings-row">' +
+        '<div class="settings-row-left">' +
+          '<span class="settings-dot online"></span>' +
+          '<span class="settings-label">' + escapeHtml(p) + '</span>' +
+        '</div>' +
+        '<span class="settings-badge">ACTIVE</span>' +
+      '</div>';
     }).join('');
   } catch(e) {
-    dom.settingsProviders.innerHTML = '<div style="color:#ff6e84; font-size:12px;">Error loading providers</div>';
+    dom.settingsProviders.innerHTML = '<div class="settings-error">Error loading providers</div>';
   }
 }
 
 async function loadMCP() {
   if (!dom.settingsMCP) return;
-  dom.settingsMCP.innerHTML = '<div style="padding:10px; font-size:12px; opacity:0.5;">Loading...</div>';
+  dom.settingsMCP.innerHTML = '<div class="settings-loading">Loading...</div>';
   try {
     var res = await fetch(API + '/mcp/status');
     var data = await res.json();
     if (!data.servers || data.servers.length === 0) {
-      dom.settingsMCP.innerHTML = '<div style="padding:10px; font-size:12px; opacity:0.5;">No MCP servers</div>';
+      dom.settingsMCP.innerHTML = '<div class="settings-empty">No MCP servers connected</div>' +
+        '<button onclick="window.fridayReconnectMCP()" class="settings-action-btn">Reconnect All</button>';
     } else {
-      dom.settingsMCP.innerHTML = data.servers.map(function(s) {
-        return '<div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); font-size:13px;">' + escapeHtml(s) + '</div>';
+      var html = data.servers.map(function(s) {
+        var name = typeof s === 'string' ? s : s.name || 'unknown';
+        return '<div class="settings-row">' +
+          '<div class="settings-row-left">' +
+            '<span class="settings-dot online"></span>' +
+            '<span class="settings-label">' + escapeHtml(name) + '</span>' +
+          '</div>' +
+          '<span class="settings-badge">LINKED</span>' +
+        '</div>';
       }).join('');
+      html += '<button onclick="window.fridayReconnectMCP()" class="settings-action-btn" style="margin-top:8px;">Reconnect All</button>';
+      dom.settingsMCP.innerHTML = html;
     }
   } catch(e) {
-    dom.settingsMCP.innerHTML = '<div style="color:#ff6e84; font-size:12px;">Error loading MCP</div>';
+    dom.settingsMCP.innerHTML = '<div class="settings-error">Error loading MCP</div>';
   }
 }
 
 async function loadTools() {
   if (!dom.settingsTools) return;
-  dom.settingsTools.innerHTML = '<div style="padding:10px; font-size:12px; opacity:0.5;">Loading...</div>';
+  dom.settingsTools.innerHTML = '<div class="settings-loading">Loading...</div>';
   try {
     var res = await fetch(API + '/reload', { method: 'POST' });
     var data = await res.json();
-    dom.settingsTools.innerHTML = '<div style="display:flex; flex-wrap:wrap; gap:6px;">' +
+    dom.settingsTools.innerHTML =
+      '<div class="settings-count">' + data.tools.length + ' tools loaded</div>' +
+      '<div class="settings-tags">' +
       data.tools.map(function(t) {
-        return '<span style="background:rgba(255,255,255,0.08); padding:4px 8px; border-radius:4px; font-size:11px;">' + escapeHtml(t) + '</span>';
+        return '<span class="settings-tag">' + escapeHtml(t) + '</span>';
       }).join('') + '</div>';
   } catch(e) {
-    dom.settingsTools.innerHTML = '<div style="color:#ff6e84; font-size:12px;">Error loading tools</div>';
+    dom.settingsTools.innerHTML = '<div class="settings-error">Error loading tools</div>';
   }
 }
 
 async function loadMemory() {
   if (!dom.settingsMemory) return;
-  dom.settingsMemory.innerHTML = '<div style="padding:10px; font-size:12px; opacity:0.5;">Loading...</div>';
+  dom.settingsMemory.innerHTML = '<div class="settings-loading">Loading...</div>';
   try {
     var res = await fetch(API + '/memory/list', { method: 'POST' });
     var data = await res.json();
     if (!data.entries || data.entries.length === 0) {
-      dom.settingsMemory.innerHTML = '<div style="padding:10px; font-size:12px; opacity:0.5;">Memory is empty</div>';
+      dom.settingsMemory.innerHTML = '<div class="settings-empty">Memory is empty</div>';
     } else {
-      dom.settingsMemory.innerHTML = data.entries.map(function(m) {
-        return '<div style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; font-size:13px;">' +
-          '<span>' + escapeHtml(m) + '</span>' +
-          '<button onclick="window.fridayForgetMemory(\'' + escapeHtml(m).replace(/'/g, "\\'") + '\')" style="color:#ff6e84; cursor:pointer; background:none; border:none; font-size:12px;">X</button>' +
-        '</div>';
-      }).join('');
+      dom.settingsMemory.innerHTML =
+        '<div class="settings-count">' + data.entries.length + ' entries</div>' +
+        data.entries.map(function(m, i) {
+          return '<div class="settings-memory-row">' +
+            '<span class="settings-memory-text">' + escapeHtml(m) + '</span>' +
+            '<button data-memory-index="' + i + '" data-memory-text="' + escapeHtml(m).replace(/"/g, '&quot;') + '" class="settings-memory-delete" title="Forget">×</button>' +
+          '</div>';
+        }).join('');
+      // Bind delete buttons via event delegation
+      dom.settingsMemory.querySelectorAll('.settings-memory-delete').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var text = this.getAttribute('data-memory-text');
+          window.fridayForgetMemory(text);
+        });
+      });
     }
   } catch(e) {
-    dom.settingsMemory.innerHTML = '<div style="color:#ff6e84; font-size:12px;">Error loading memory</div>';
+    dom.settingsMemory.innerHTML = '<div class="settings-error">Error loading memory</div>';
   }
 }
 
 window.fridayForgetMemory = async function(keyword) {
   try {
     await fetch(API + '/memory/forget?query=' + encodeURIComponent(keyword), { method: 'POST' });
+    window.fridayToast('Memory entry removed');
     loadMemory();
   } catch(e) {}
 };
@@ -447,8 +504,20 @@ window.fridayClearMemory = async function() {
   if (!confirm('Clear all memory context?')) return;
   try {
     await fetch(API + '/memory/clear', { method: 'POST' });
+    window.fridayToast('Memory cleared');
     loadMemory();
   } catch(e) {}
+};
+
+window.fridayReconnectMCP = async function() {
+  window.fridayToast('Reconnecting MCP servers...');
+  try {
+    await fetch(API + '/mcp/reconnect', { method: 'POST' });
+    window.fridayToast('MCP reconnected');
+    loadMCP();
+  } catch(e) {
+    window.fridayToast('MCP reconnect failed');
+  }
 };
 
 var THEMES = [
