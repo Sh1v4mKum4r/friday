@@ -16,17 +16,35 @@ CHROME_PROFILE="$HOME/.config/friday/chrome-bridge-profile"
 case "${1:-}" in
     setup)
         echo "Opening Chrome with Friday bridge profile..."
-        echo "Install the AI Mode API extension:"
-        echo "  1. Go to https://aimodeapi.com"
-        echo "  2. Click 'Install Extension'"
-        echo "  3. Enable it and wait for 'Connected' status"
-        echo "  4. Close Chrome when done"
+        echo ""
+        echo "Setup steps:"
+        echo "  1. Go to chrome://extensions"
+        echo "  2. Enable 'Developer mode' (top-right toggle)"
+        echo "  3. Go to https://aimodeapi.com"
+        echo "  4. Click 'Install Extension'"
+        echo "  5. Enable it and wait for 'Connected' status"
+        echo "  6. Close Chrome when done"
         echo ""
         mkdir -p "$CHROME_PROFILE"
+
+        # Enable developer mode in extensions preferences
+        PREFS_DIR="$CHROME_PROFILE/Default"
+        mkdir -p "$PREFS_DIR"
+        if [ -f "$PREFS_DIR/Preferences" ]; then
+            python3 -c "
+import json
+with open('$PREFS_DIR/Preferences') as f: prefs = json.load(f)
+prefs.setdefault('extensions', {})['ui'] = {'developer_mode': True}
+with open('$PREFS_DIR/Preferences', 'w') as f: json.dump(prefs, f)
+" 2>/dev/null
+        else
+            echo '{"extensions":{"ui":{"developer_mode":true}}}' > "$PREFS_DIR/Preferences"
+        fi
+
         $CHROME_BIN \
             --no-first-run \
             --user-data-dir="$CHROME_PROFILE" \
-            "https://aimodeapi.com" 2>/dev/null
+            "chrome://extensions" 2>/dev/null
         echo "Setup complete. Now run: friday-chrome-bridge start"
         ;;
 
