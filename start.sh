@@ -58,7 +58,16 @@ case "${1:-}" in
         ./target/release/friday_core --daemon &
         RUST_PID=$!
 
-        trap "kill $BACKEND_PID $RUST_PID 2>/dev/null" EXIT
+        # Start Chrome bridge if google mode is active
+        CHROME_PID=""
+        MODE=$(grep "provider_mode" "$CONFIG_DIR/config.toml" 2>/dev/null | cut -d'"' -f2)
+        if [ "$MODE" = "google" ]; then
+            echo "Google mode detected — starting Chrome bridge..."
+            "$FRIDAY_DIR/bin/friday-chrome-bridge" start
+            CHROME_PID=$(cat /tmp/friday-chrome-bridge.pid 2>/dev/null)
+        fi
+
+        trap "kill $BACKEND_PID $RUST_PID 2>/dev/null; [ -n '$CHROME_PID' ] && $FRIDAY_DIR/bin/friday-chrome-bridge stop" EXIT
         # Wait on both — if either dies, cleanup
         wait $BACKEND_PID $RUST_PID
         ;;
