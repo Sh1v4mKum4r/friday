@@ -158,13 +158,14 @@ def classify_intent(prompt: str) -> str:
         return "dangerous"
     if _CONVERSATIONAL.match(prompt):
         return "chat"
-    if needs_web_search(prompt):
-        return "search"
-    # Check complex BEFORE system — complex patterns are more specific
+    # Check system BEFORE search — "next track" is system, not search
+    # Check complex BEFORE system — "write a script" is complex, not system
     if _COMPLEX_KEYWORDS.search(prompt):
         return "complex"
     if _SYSTEM_KEYWORDS.search(prompt):
         return "system"
+    if needs_web_search(prompt):
+        return "search"
     if len(prompt) > 200:
         return "complex"
     return "unknown"

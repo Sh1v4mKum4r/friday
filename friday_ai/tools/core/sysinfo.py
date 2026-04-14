@@ -110,9 +110,20 @@ def _gpu_info() -> str:
 
 
 def _network_info() -> str:
-    # Get IP
+    # Get IP — try multiple methods
     ip = _run(["hostname", "-I"])
-    ip = ip.split()[0] if ip else "unknown"
+    if not ip or ip == "unknown" or "error" in ip.lower():
+        # Fallback: parse ip addr
+        ip_output = _run(["ip", "-4", "addr", "show", "scope", "global"])
+        for line in ip_output.splitlines():
+            line = line.strip()
+            if line.startswith("inet "):
+                ip = line.split()[1].split("/")[0]
+                break
+        else:
+            ip = "unknown"
+    else:
+        ip = ip.split()[0]
 
     # Get connection info
     wifi = _run(["iwctl", "station", "wlan0", "show"])

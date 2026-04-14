@@ -54,8 +54,8 @@ def _set_crontab(content: str) -> str:
     """Write content as the user's crontab."""
     try:
         proc = subprocess.Popen(
-            ["crontab", "-"], stdin=subprocess.PIPE, text=True,
-            capture_output=True, timeout=5,
+            ["crontab", "-"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True,
         )
         stdout, stderr = proc.communicate(input=content, timeout=5)
         if proc.returncode == 0:
