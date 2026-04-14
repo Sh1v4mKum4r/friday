@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FRIDAY | Neural Terminal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#004119",
+                        "on-surface-variant": "#cfc2d6",
+                        "on-background": "#e4e1ea",
+                        "on-primary-fixed-variant": "#6900b3",
+                        "on-primary-container": "#400071",
+                        "secondary": "#4ae176",
+                        "on-secondary-fixed": "#002109",
+                        "inverse-primary": "#842bd2",
+                        "surface-container": "#15151b",
+                        "surface-container-low": "#111116",
+                        "on-tertiary": "#003919",
+                        "on-primary-fixed": "#2c0051",
+                        "on-secondary": "#003915",
+                        "surface-dim": "#0a0a0d",
+                        "surface-bright": "#22222a",
+                        "surface": "#0a0a0d",
+                        "primary": "#ddb7ff",
+                        "on-primary": "#490080",
+                        "primary-fixed": "#f0dbff",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#2a2a32",
+                        "primary-container": "#b76dff",
+                        "on-error": "#690005",
+                        "secondary-fixed-dim": "#4ae176",
+                        "tertiary-fixed-dim": "#4de082",
+                        "on-tertiary-container": "#003115",
+                        "tertiary-container": "#00a755",
+                        "surface-container-lowest": "#050507",
+                        "outline": "#4d4354",
+                        "error-container": "#93000a",
+                        "on-tertiary-fixed": "#00210c",
+                        "tertiary-fixed": "#6dfe9c",
+                        "secondary-container": "#00b954",
+                        "background": "#020205",
+                        "inverse-surface": "#e4e1ea",
+                        "on-surface": "#e4e1ea",
+                        "primary-fixed-dim": "#ddb7ff",
+                        "outline-variant": "#333333",
+                        "surface-variant": "#1c1c21",
+                        "surface-tint": "#ddb7ff",
+                        "surface-container-high": "#1a1a20",
+                        "on-secondary-fixed-variant": "#005321",
+                        "tertiary": "#4de082",
+                        "on-tertiary-fixed-variant": "#005227",
+                        "error": "#ffb4ab",
+                        "secondary-fixed": "#6bff8f",
+                        "inverse-on-surface": "#1c1c21"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "0px"
+                    },
+                    "fontFamily": {
+                        "headline": ["JetBrains Mono"],
+                        "body": ["JetBrains Mono"],
+                        "label": ["JetBrains Mono"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #020205;
+            background-image: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: auto;
+        }
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.01), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.01));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 101;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(74, 225, 118, 0.05) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.1;
+            position: fixed;
+            bottom: 100%;
+            animation: scanline 10s linear infinite;
+        }
+        @keyframes scanline {
+            0% { bottom: 100%; }
+            100% { bottom: -100px; }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .terminal-border {
+            border: 0.5px solid #4ae17640;
+        }
+        .terminal-header {
+            background: #4ae17615;
+            border-bottom: 0.5px solid #4ae17640;
+        }
+        button.active { background: rgba(74, 225, 118, 0.1); color: #4ae176; border-color: rgba(74, 225, 118, 0.4); }
+    </style>
+</head>
+<body class="text-on-background font-body min-h-screen flex flex-col selection:bg-secondary/30">
+<div class="scanline"></div>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-0 z-40 flex justify-between items-center px-4 bg-background border-b-[0.5px] border-secondary/20 h-10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary text-sm">terminal</span>
+<span class="text-xs font-bold text-secondary tracking-[0.2em]">FRIDAY_OS [V.4.4.2]</span>
+</div>
+<div class="hidden sm:flex font-label text-[9px] tracking-widest uppercase text-secondary/60">
+        SYS_LOAD: <span class="text-secondary ml-1">0.12ms</span> | MEM_FREE: <span class="text-secondary ml-1">94%</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-4 font-label text-[9px] tracking-widest uppercase text-white/40">
+<span class="hidden md:inline">U_TIME: 442H</span>
+<span class="text-secondary"><span class="animate-pulse">●</span> LIVE</span>
+</div>
+<div class="flex gap-2 items-center">
+<button id="settingsBtn" class="text-secondary/40 hover:text-secondary terminal-border px-2 py-0.5 text-[9px] tracking-widest uppercase transition-all">
+  CONFIG_
+</button>
+<span class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors">settings_input_component</span>
+<span class="material-symbols-outlined text-white/30 text-sm hover:text-secondary cursor-pointer transition-colors">grid_view</span>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main id="chatArea" class="flex-1 mt-10 mb-24 overflow-y-auto px-4 py-8 md:px-24 lg:px-48 xl:px-64 scroll-smooth">
+</main>
+<!-- Bottom Input Bar -->
+<footer class="fixed bottom-0 right-0 left-0 w-full z-50 bg-background border-t-[0.5px] border-secondary/20 px-4 py-2 flex flex-col gap-1">
+<div class="flex items-center gap-1 justify-center">
+  <button id="modeChat" class="terminal-border px-3 py-1 text-[9px] tracking-widest text-secondary/60 uppercase transition-all">CHAT</button>
+  <button id="modeCommand" class="terminal-border px-3 py-1 text-[9px] tracking-widest text-on-surface-variant/30 uppercase transition-all">COMMAND</button>
+  <button id="modeSearch" class="terminal-border px-3 py-1 text-[9px] tracking-widest text-on-surface-variant/30 uppercase transition-all">SEARCH</button>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex-1 flex items-center terminal-border bg-surface-container-lowest relative group">
+<button class="px-3 text-white/30 hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-sm">attach_file</span>
+</button>
+<input id="messageInput" class="flex-1 bg-transparent border-none focus:ring-0 text-xs font-label text-on-surface placeholder:text-secondary/20 py-2" placeholder="&gt; EXECUTE_COMMAND_OR_QUERY..." type="text"/>
+<div class="flex items-center gap-2 pr-3">
+<button class="w-8 h-8 flex items-center justify-center text-white/30 hover:text-secondary">
+<span class="material-symbols-outlined text-sm">mic</span>
+</button>
+<button id="sendBtn" class="bg-secondary/10 hover:bg-secondary/20 text-secondary terminal-border px-4 py-1 text-[9px] tracking-widest uppercase transition-all">
+                SEND_
+            </button>
+</div>
+</div>
+<div class="hidden lg:flex items-center gap-6 border-l border-secondary/10 pl-4 h-8">
+<div class="flex flex-col">
+<span class="text-[8px] text-white/30 uppercase tracking-tighter">LATENCY</span>
+<span class="text-[10px] text-secondary">0.002MS</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[8px] text-white/30 uppercase tracking-tighter">RESOURCES</span>
+<span class="text-[10px] text-primary">1.2K_TOK</span>
+</div>
+</div>
+</div>
+</footer>
+<!-- BottomNavBar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 right-0 left-0 w-full z-[60] flex justify-around items-center bg-background border-t-[0.5px] border-secondary/20 h-16">
+<button class="flex flex-col items-center justify-center text-secondary border-t border-secondary pt-1">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">terminal</span>
+<span class="text-[8px] mt-1 uppercase font-bold">Terminal</span>
+</button>
+<button class="flex flex-col items-center justify-center text-white/30">
+<span class="material-symbols-outlined text-sm">memory</span>
+<span class="text-[8px] mt-1 uppercase font-bold">Nodes</span>
+</button>
+<button class="flex flex-col items-center justify-center text-white/30">
+<span class="material-symbols-outlined text-sm">database</span>
+<span class="text-[8px] mt-1 uppercase font-bold">Cache</span>
+</button>
+</nav>
+<!-- Empty State -->
+<div id="emptyState" class="hidden flex flex-col items-center justify-center min-h-[60vh] px-8 text-center">
+  <div class="terminal-border p-6 mb-8">
+    <span class="text-4xl font-bold text-secondary font-label">F</span>
+  </div>
+  <div class="text-xs font-label tracking-[0.3em] text-secondary/80 uppercase mb-2">WHAT CAN I HELP WITH?</div>
+  <div class="text-[9px] font-label tracking-widest text-on-surface-variant/30 uppercase mb-10">NEURAL INTERFACE // WAITING FOR INPUT</div>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-2 max-w-2xl w-full">
+    <button onclick="window.fridayQuickSend('Run a command')" class="terminal-border p-3 text-left hover:bg-secondary/5 transition-colors">
+      <span class="material-symbols-outlined text-secondary mb-1" style="font-size:16px;">terminal</span>
+      <div class="text-[9px] tracking-widest text-secondary/60 uppercase">EXECUTE_CMD</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Explain this code')" class="terminal-border p-3 text-left hover:bg-secondary/5 transition-colors">
+      <span class="material-symbols-outlined text-secondary mb-1" style="font-size:16px;">code</span>
+      <div class="text-[9px] tracking-widest text-secondary/60 uppercase">ANALYZE_CODE</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Search the web')" class="terminal-border p-3 text-left hover:bg-secondary/5 transition-colors">
+      <span class="material-symbols-outlined text-secondary mb-1" style="font-size:16px;">search</span>
+      <div class="text-[9px] tracking-widest text-secondary/60 uppercase">WEB_SEARCH</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Analyze data')" class="terminal-border p-3 text-left hover:bg-secondary/5 transition-colors">
+      <span class="material-symbols-outlined text-secondary mb-1" style="font-size:16px;">analytics</span>
+      <div class="text-[9px] tracking-widest text-secondary/60 uppercase">DATA_ANALYSIS</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Refactor this code')" class="terminal-border p-3 text-left hover:bg-secondary/5 transition-colors">
+      <span class="material-symbols-outlined text-secondary mb-1" style="font-size:16px;">build</span>
+      <div class="text-[9px] tracking-widest text-secondary/60 uppercase">REFACTOR_CORE</div>
+    </button>
+    <button onclick="window.fridayQuickSend('Help with security')" class="terminal-border p-3 text-left hover:bg-secondary/5 transition-colors">
+      <span class="material-symbols-outlined text-secondary mb-1" style="font-size:16px;">security</span>
+      <div class="text-[9px] tracking-widest text-secondary/60 uppercase">SYS_PROTECT</div>
+    </button>
+  </div>
+</div>
+
+<!-- Settings Overlay -->
+<div id="settingsOverlay" class="hidden fixed inset-0 bg-black/80 z-[90]"></div>
+
+<!-- Settings Panel -->
+<div id="settingsPanel" class="hidden fixed top-0 right-0 h-full w-[420px] bg-[#0a0a0d] border-l-[0.5px] border-secondary/20 z-[100] flex flex-col shadow-[-20px_0_80px_rgba(0,0,0,0.95)]">
+  <div class="flex items-center justify-between px-4 py-2 border-b-[0.5px] border-secondary/20">
+    <span class="text-[10px] font-label tracking-widest text-secondary uppercase">SYSTEM_CONFIG</span>
+    <button onclick="window.fridayToggleSettings()" class="text-on-surface-variant/40 hover:text-secondary text-[9px] tracking-widest uppercase">CLOSE_</button>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4 space-y-6" style="scrollbar-width:thin; scrollbar-color:#1a1a20 #0a0a0d;">
+    <div>
+      <div class="text-[9px] text-secondary/60 tracking-widest uppercase mb-3">THEME_SELECT</div>
+      <div id="themeSelect"></div>
+    </div>
+    <div>
+      <div class="text-[9px] text-secondary/60 tracking-widest uppercase mb-3">PROVIDER_STATUS</div>
+      <div id="settingsProviders"></div>
+    </div>
+    <div>
+      <div class="text-[9px] text-secondary/60 tracking-widest uppercase mb-3">MCP_SERVERS</div>
+      <div id="settingsMCP"></div>
+    </div>
+    <div>
+      <div class="text-[9px] text-secondary/60 tracking-widest uppercase mb-3">LOADED_TOOLS</div>
+      <div id="settingsTools"></div>
+    </div>
+    <div>
+      <div class="text-[9px] text-secondary/60 tracking-widest uppercase mb-3">MEMORY_BANK</div>
+      <div id="settingsMemory"></div>
+      <button onclick="window.fridayClearMemory()" class="mt-3 text-[9px] text-error/60 hover:text-error tracking-widest uppercase">PURGE_MEMORY_</button>
+    </div>
+  </div>
+</div>
+
+<!-- Message Templates -->
+<template id="tplUserBubble">
+  <div class="flex justify-end mb-6">
+    <div class="max-w-[90%] md:max-w-[75%] terminal-border bg-surface-container-lowest relative">
+      <div class="terminal-header px-3 py-1 flex justify-between items-center">
+        <span class="text-[9px] tracking-widest text-on-surface-variant/40 uppercase font-label">USER_INPUT</span>
+        <span class="text-[8px] text-on-surface-variant/20 font-label">{TIME}</span>
+      </div>
+      <div class="p-4 text-xs font-body leading-relaxed text-on-surface/90">{CONTENT}</div>
+    </div>
+  </div>
+</template>
+
+<template id="tplFridayBubble">
+  <div class="flex gap-4 items-start mb-6">
+    <div class="flex-shrink-0 w-8 h-8 terminal-border bg-secondary/5 flex items-center justify-center">
+      <span class="text-secondary text-xs font-bold font-label">F</span>
+    </div>
+    <div class="flex-1 max-w-[90%] md:max-w-[85%] terminal-border bg-surface-container-high/40 relative">
+      <div class="terminal-header px-3 py-1 flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-[9px] tracking-widest text-secondary uppercase font-label">FRIDAY_CORE</span>
+          <span class="text-[8px] bg-secondary/10 text-secondary px-1.5 py-0.5 terminal-border">{PROVIDER}</span>
+        </div>
+        <span class="text-[8px] text-on-surface-variant/20 font-label">{TIME}</span>
+      </div>
+      <div class="p-4 text-xs font-body leading-relaxed text-on-surface/80">{CONTENT}</div>
+    </div>
+  </div>
+</template>
+
+<script src="/static/chat-engine.js"></script>
+</body></html>
