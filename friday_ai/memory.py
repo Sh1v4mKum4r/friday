@@ -167,11 +167,9 @@ class MemoryStore:
         if memory_text:
             sections.append(f"## Memory\n\n{memory_text}")
 
-        log_path = self._today_log_path()
-        if log_path.exists():
-            log_text = log_path.read_text().strip()
-            if log_text:
-                sections.append(f"## Today's Log\n\n{log_text}")
+        # NOTE: Today's log is NOT included in the prompt because the
+        # conversation history (agent.history) already provides that context.
+        # Including both causes the model to echo timestamped log entries.
 
         # Search past logs for relevant context
         if query:
