@@ -20,6 +20,9 @@ show_help() {
   tui                  Terminal UI
   gui                  Floating chat window
   send <prompt>        One-shot prompt (stateless)
+  send search <q>      Search via Google AI
+  send cloud <q>       Force cloud provider
+  send google <q>      Force Google AI
 
  MANAGE
   tools                List built-in tools
@@ -40,6 +43,9 @@ show_help() {
   update               Git pull + rebuild
   logs                 Tail backend logs
   completions          Shell tab-completion
+
+ SERVICES
+  chrome-bridge        Headless Chrome for AI Mode API  [start/stop/status]
 
  QUICK (Super+F = floating window)
   friday-tui            friday-send <prompt>            friday-gui
@@ -697,6 +703,12 @@ _friday_completions() {
 }
 complete -F _friday_completions friday
 COMP
+        ;;
+
+    # -------------------------------------------------------------------
+    chrome-bridge)
+        shift
+        "$FRIDAY_DIR/bin/friday-chrome-bridge" "${1:-status}"
         ;;
 
     # -------------------------------------------------------------------
