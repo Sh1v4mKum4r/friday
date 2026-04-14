@@ -157,7 +157,7 @@ def create_app(config_path: Path | None = None) -> FastAPI:
     providers.append(WebSearchProvider())
 
     # 5. Google AI mode (opens browser)
-    providers.append(GoogleAIProvider())
+    providers.append(GoogleAIProvider(serpapi_key=config.providers.serpapi_key))
 
     # ------------------------------------------------------------------ #
     # Create router, tool loader, and agent                                #

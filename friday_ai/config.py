@@ -31,6 +31,7 @@ class ProvidersConfig:
     openai_model: str = "gpt-4o"
     ollama_model_fast: str = "qwen2.5:3b"
     ollama_model_heavy: str = "qwen2.5:7b"
+    serpapi_key: str = ""
 
 
 @dataclass
@@ -95,6 +96,7 @@ def load_config(path: str | Path) -> FridayConfig:
         gemini_model=p.get("gemini_model", ProvidersConfig.gemini_model),
         claude_model=p.get("claude_model", ProvidersConfig.claude_model),
         openai_model=p.get("openai_model", ProvidersConfig.openai_model),
+        serpapi_key=p.get("serpapi_key", ""),
     )
 
     # Apply env-var overrides only when the TOML value is empty
@@ -104,6 +106,8 @@ def load_config(path: str | Path) -> FridayConfig:
         providers.claude_api_key = os.environ.get("CLAUDE_API_KEY", "")
     if not providers.openai_api_key:
         providers.openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not providers.serpapi_key:
+        providers.serpapi_key = os.environ.get("SERPAPI_KEY", "")
 
     # --- server ---
     s = raw.get("server", {})
