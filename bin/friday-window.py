@@ -47,6 +47,14 @@ def main():
             subprocess.run(["notify-send", "Friday", "Failed to start backend."])
             sys.exit(1)
 
+    def on_loaded():
+        """After window loads, force float it in Cosmic via wtype."""
+        import time
+        time.sleep(1)
+        # Cosmic: Super+G toggles floating for focused window
+        subprocess.run(["wtype", "-M", "logo", "-k", "g", "-m", "logo"],
+                       capture_output=True, timeout=3)
+
     # Create the floating window
     window = webview.create_window(
         title="Friday",
@@ -59,6 +67,8 @@ def main():
         easy_drag=True,
         background_color="#0f0f14",
     )
+
+    window.events.loaded += on_loaded
 
     # Start the webview (blocks until window is closed)
     webview.start(gui="gtk", debug=False)
